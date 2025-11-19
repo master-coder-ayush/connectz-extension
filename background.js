@@ -59,6 +59,54 @@ async function checkLogin() {
   }
 }
 
+async function generateCommentResponse(postContent) {
+  if (!postContent || !postContent.trim()) {
+    throw new Error("Post content is empty.");
+  }
+
+  const baseUrl = await getBaseUrl();
+  const endpoint = `${baseUrl.replace(/\/$/, "")}/api/comments/generate`;
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      linkedin_post_content: postContent,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(
+      `API error ${res.status}: ${errorText || res.statusText || "Unknown error"}`
+    );
+  }
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch (error) {
+    throw new Error("Unable to parse API response.");
+  }
+
+  const comment =
+    data.comment ||
+    data.generated_comment ||
+    data.comment_text ||
+    data.result ||
+    data.data ||
+    null;
+
+  if (!comment || !comment.trim()) {
+    throw new Error("API did not return a comment.");
+  }
+
+  return comment.trim();
+}
+
 // Check login status immediately when extension starts
 checkLogin();
 
@@ -79,6 +127,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
     });
     return true; // Keep the message channel open for async response
+    return true; // Keep the message channel open for async response
+  } else if (request.action === "generateComment") {
+    generateCommentResponse(request.postContent)
+      .then((comment) => {
+        sendResponse({ success: true, comment });
+      })
+      .catch((error) => {
+        sendResponse({ success: false, error: error.message || "Unknown error" });
+      });
+    return true;
   }
 });
 
