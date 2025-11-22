@@ -38,6 +38,77 @@ function requestGeneratedComment(postContent) {
   });
 }
 
+function requestGeneratedPost(roughPostContent) {
+  return new Promise((resolve, reject) => {
+    if (!roughPostContent || !roughPostContent.trim()) {
+      reject(new Error("Rough post content is empty."));
+      return;
+    }
+
+    chrome.runtime.sendMessage(
+      {
+        action: "generatePost",
+        roughPostContent,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        if (!response || !response.success) {
+          reject(
+            new Error(
+              response?.error ||
+                "Unable to generate post. Please try again later."
+            )
+          );
+          return;
+        }
+
+        resolve(response.post);
+      }
+    );
+  });
+}
+
+// Function to check if editor is a post composer (not a comment box)
+function isPostComposer(editor) {
+  // Check for post composer containers - including the modal
+  const container = editor.closest('.share-box-v2__modal') ||
+                   editor.closest('.share-box') ||
+                   editor.closest('.share-box-feed') ||
+                   editor.closest('.share-creation-state__text-editor') ||
+                   editor.closest('.share-creation-state') ||
+                   editor.closest('[data-test-id="share-box"]') ||
+                   editor.closest('.share-creation-box') ||
+                   editor.closest('.share-creation-textarea') ||
+                   editor.closest('.feed-share-update-v2') ||
+                   editor.closest('.share-box__text-area') ||
+                   editor.closest('.editor-container');
+  
+  // Also check if it's NOT in a comment container
+  const isInComment = editor.closest('.comments-comment-box') ||
+                      editor.closest('.comments-comment-box-comment__text-editor') ||
+                      editor.closest('.comments-comment-box__text-editor');
+  
+  return container && !isInComment;
+}
+
+// Function to extract rough post content from the editor itself
+function extractRoughPostContent(editor) {
+  try {
+    // Get the text content directly from the editor
+    const text = editor.textContent || editor.innerText || '';
+    
+    // Clean up the text
+    return text.trim();
+  } catch (error) {
+    console.error('Error extracting rough post content:', error);
+    return null;
+  }
+}
+
 // Function to save cursor position
 function saveCursorPosition(editor) {
   activeEditorRef = editor;
@@ -210,72 +281,126 @@ function insertAtCursor(text, editor) {
   targetEditor.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+// Function to clear editor content before inserting new text
+function clearEditorContent(editor) {
+  if (!editor) return;
+
+  editor.innerHTML = '';
+
+  const paragraph = document.createElement('p');
+  const br = document.createElement('br');
+  paragraph.appendChild(br);
+  editor.appendChild(paragraph);
+
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+  editor.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 // Function to create and add + button next to editor
 function addPlusButton(editor) {
-  // Find the editor wrapper (usually .ql-container or similar)
-  const editorWrapper = editor.closest('.ql-container') || 
-                       editor.closest('[class*="comment"]') ||
-                       editor.parentElement;
+  // Find key containers
+  const editorWrapper = editor.closest('.comments-comment-box-comment__text-editor') ||
+                        editor.closest('.ql-container') ||
+                        editor.parentElement;
+  const flexContainer = editor.closest('.display-flex.flex-wrap');
+  const buttonContainer = flexContainer || editorWrapper;
+  const isFlexPlacement = Boolean(flexContainer);
 
-  if (!editorWrapper) return;
+  if (!buttonContainer) return;
 
-  // Check if button already exists
-  let plusBtn = editorWrapper.querySelector('.connectz-plus-btn');
+  // Create + button (one per editor)
+  const plusBtn = document.createElement('button');
+  plusBtn.className = 'connectz-plus-btn';
+  plusBtn.type = 'button';
+  plusBtn.innerHTML = '+';
   
-  if (!plusBtn) {
-    // Create + button
-    plusBtn = document.createElement('button');
-    plusBtn.className = 'connectz-plus-btn';
-    plusBtn.innerHTML = '+';
-    plusBtn.title = 'Insert text at cursor';
-    plusBtn.style.cssText = `
+  // Set title based on editor type
+  const isPost = isPostComposer(editor);
+  plusBtn.title = isPost ? 'Generate post from rough content' : 'Generate comment from post';
+
+  const baseStyles = `
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #0077b5;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: background-color 0.2s;
+  `;
+
+  plusBtn.style.cssText = isFlexPlacement
+    ? `
+      ${baseStyles}
+      position: static;
+      margin: 5px 8px;
+      align-self: flex-start;
+    `
+    : `
+      ${baseStyles}
       position: absolute;
       right: 10px;
       top: 10px;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background-color: #0077b5;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 18px;
-      font-weight: bold;
-      display: none;
-      align-items: center;
-      justify-content: center;
       z-index: 1000;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      transition: background-color 0.2s;
     `;
 
-    // Hover effect
-    plusBtn.addEventListener('mouseenter', () => {
-      plusBtn.style.backgroundColor = '#005885';
-    });
-    plusBtn.addEventListener('mouseleave', () => {
-      plusBtn.style.backgroundColor = '#0077b5';
-    });
+  // Hover effect
+  plusBtn.addEventListener('mouseenter', () => {
+    plusBtn.style.backgroundColor = '#005885';
+  });
+  plusBtn.addEventListener('mouseleave', () => {
+    plusBtn.style.backgroundColor = '#0077b5';
+  });
 
-    // Click handler - insert text at cursor
-    plusBtn.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // Save editor reference and cursor position before click
-      saveCursorPosition(editor);
-    });
+  // Track if button should stay visible
+  let buttonShouldStayVisible = false;
 
-    plusBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+  // Click handler - insert text at cursor
+  plusBtn.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Save editor reference and cursor position before click
+    saveCursorPosition(editor);
+  });
+
+  plusBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    buttonShouldStayVisible = true;
+    const originalLabel = plusBtn.textContent;
+    plusBtn.textContent = '…';
+    plusBtn.disabled = true;
+
+    try {
+      // Check if this is a post composer or comment box
+      const isPost = isPostComposer(editor);
       
-      buttonShouldStayVisible = true;
-      const originalLabel = plusBtn.textContent;
-      plusBtn.textContent = '…';
-      plusBtn.disabled = true;
+      if (isPost) {
+        // For post composers: extract rough post content from the editor itself
+        const roughPostContent = extractRoughPostContent(editor);
+        
+        if (!roughPostContent) {
+          throw new Error("Please write some rough post content first.");
+        }
 
-      try {
-        // Extract post content from the DOM
+        const generatedPost = await requestGeneratedPost(roughPostContent);
+
+        // Small delay to ensure editor is ready
+        setTimeout(() => {
+          clearEditorContent(editor);
+          insertAtCursor(generatedPost, editor);
+          // Keep button visible by refocusing editor
+          editor.focus();
+        }, 50);
+      } else {
+        // For comment boxes: extract post content from the DOM
         const postContent = extractPostContent(editor);
 
         if (!postContent) {
@@ -286,38 +411,37 @@ function addPlusButton(editor) {
 
         // Small delay to ensure editor is ready
         setTimeout(() => {
+          clearEditorContent(editor);
           insertAtCursor(generatedComment, editor);
           // Keep button visible by refocusing editor
           editor.focus();
         }, 50);
-      } catch (error) {
-        console.error("Error generating comment:", error);
-        const fallbackMessage =
-          error?.message ||
-          "Unable to generate comment. Please try again in a moment.";
-        setTimeout(() => {
-          insertAtCursor(fallbackMessage, editor);
-          editor.focus();
-        }, 50);
-      } finally {
-        plusBtn.textContent = originalLabel || '+';
-        plusBtn.disabled = false;
-        // Restore button state
-        buttonShouldStayVisible = false;
       }
-    });
-
-    // Make editor container relative positioned if not already
-    if (getComputedStyle(editorWrapper).position === 'static') {
-      editorWrapper.style.position = 'relative';
+    } catch (error) {
+      console.error("Error generating content:", error);
+      const fallbackMessage =
+        error?.message ||
+        "Unable to generate content. Please try again in a moment.";
+      setTimeout(() => {
+        clearEditorContent(editor);
+        insertAtCursor(fallbackMessage, editor);
+        editor.focus();
+      }, 50);
+    } finally {
+      plusBtn.textContent = originalLabel || '+';
+      plusBtn.disabled = false;
+      // Restore button state
+      buttonShouldStayVisible = false;
     }
+  });
 
-    // Insert button into editor wrapper
-    editorWrapper.appendChild(plusBtn);
+  // Make editor container relative positioned if we fall back to absolute placement
+  if (!isFlexPlacement && editorWrapper && getComputedStyle(editorWrapper).position === 'static') {
+    editorWrapper.style.position = 'relative';
   }
 
-  // Track if button should stay visible
-  let buttonShouldStayVisible = false;
+  // Insert button into chosen container
+  buttonContainer.appendChild(plusBtn);
 
   // Show/hide button based on focus
   function updateButtonVisibility() {
@@ -326,7 +450,7 @@ function addPlusButton(editor) {
     
     // Show if editor is focused or button should stay visible
     if (isFocused || buttonShouldStayVisible) {
-      plusBtn.style.display = 'flex';
+      plusBtn.style.display = isFlexPlacement ? 'inline-flex' : 'flex';
     } else {
       plusBtn.style.display = 'none';
     }

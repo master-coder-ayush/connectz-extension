@@ -79,10 +79,7 @@ async function generateCommentResponse(postContent) {
   });
 
   if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
-    throw new Error(
-      `API error ${res.status}: ${errorText || res.statusText || "Unknown error"}`
-    );
+    throw new Error("Unable to generate comment. Please try again later.");
   }
 
   let data = {};
@@ -107,6 +104,51 @@ async function generateCommentResponse(postContent) {
   return comment.trim();
 }
 
+async function generatePostResponse(roughPostContent) {
+  if (!roughPostContent || !roughPostContent.trim()) {
+    throw new Error("Rough post content is empty.");
+  }
+
+  const baseUrl = await getBaseUrl();
+  const endpoint = `${baseUrl.replace(/\/$/, "")}/api/posts/generate`;
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      rough_post_content: roughPostContent,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Unable to generate post. Please try again later.");
+  }
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch (error) {
+    throw new Error("Unable to parse API response.");
+  }
+
+  const post =
+    data.post ||
+    data.generated_post ||
+    data.post_text ||
+    data.result ||
+    data.data ||
+    null;
+
+  if (!post || !post.trim()) {
+    throw new Error("API did not return a post.");
+  }
+
+  return post.trim();
+}
+
 // Check login status immediately when extension starts
 checkLogin();
 
@@ -127,7 +169,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
     });
     return true; // Keep the message channel open for async response
-    return true; // Keep the message channel open for async response
   } else if (request.action === "generateComment") {
     generateCommentResponse(request.postContent)
       .then((comment) => {
@@ -137,6 +178,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message || "Unknown error" });
       });
     return true;
+  } else if (request.action === "generatePost") {
+    generatePostResponse(request.roughPostContent)
+      .then((post) => {
+        sendResponse({ success: true, post });
+      })
+      .catch((error) => {
+        sendResponse({ success: false, error: error.message || "Unknown error" });
+      });
+    return true;
   }
 });
-
