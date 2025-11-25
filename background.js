@@ -149,6 +149,55 @@ async function generatePostResponse(roughPostContent) {
   return post.trim();
 }
 
+async function generateRephraseCommentResponse(postContent, existingComment) {
+  if (!postContent || !postContent.trim()) {
+    throw new Error("Post content is empty.");
+  }
+
+  if (!existingComment || !existingComment.trim()) {
+    throw new Error("Existing comment is empty.");
+  }
+
+  const baseUrl = await getBaseUrl();
+  const endpoint = `${baseUrl.replace(/\/$/, "")}/api/comments/rephrase`;
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      linkedin_post_content: postContent,
+      existing_comment: existingComment
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Unable to rephrase comment. Please try again later.");
+  }
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch (error) {
+    throw new Error("Unable to parse API response.");
+  }
+
+  const rephraseComment =
+    data.rephrased_comment ||
+    data.comment ||
+    data.result ||
+    data.data ||
+    null;
+
+  if (!rephraseComment || !rephraseComment.trim()) {
+    throw new Error("API did not return a rephrased comment.");
+  }
+
+  return rephraseComment.trim();
+}
+
 // Check login status immediately when extension starts
 checkLogin();
 
@@ -182,6 +231,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     generatePostResponse(request.roughPostContent)
       .then((post) => {
         sendResponse({ success: true, post });
+      })
+      .catch((error) => {
+        sendResponse({ success: false, error: error.message || "Unknown error" });
+      });
+    return true;
+  } else if (request.action === "rephraseComment") {
+    generateRephraseCommentResponse(request.postContent, request.existingComment)
+      .then((rephraseComment) => {
+        sendResponse({ success: true, comment: rephraseComment });
       })
       .catch((error) => {
         sendResponse({ success: false, error: error.message || "Unknown error" });
