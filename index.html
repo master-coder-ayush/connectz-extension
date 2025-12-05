@@ -1,19 +1,28 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Connect Z</title>
     <style>
         body {
-            width: 300px;
+            width: 350px;
             padding: 20px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             margin: 0;
         }
+
         h1 {
             margin: 0 0 20px 0;
             font-size: 24px;
             color: #333;
         }
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
         #status {
             padding: 15px;
             border-radius: 8px;
@@ -22,21 +31,25 @@
             text-align: center;
             margin: 10px 0;
         }
+
         .logged-in {
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+
         .logged-out {
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
         .checking {
             background-color: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
+
         button {
             width: 100%;
             padding: 10px;
@@ -49,32 +62,98 @@
             font-size: 14px;
             font-weight: 500;
         }
+
         button:hover {
             background-color: #0056b3;
         }
+
         #loginBtn {
             background-color: #28a745;
         }
+
         #loginBtn:hover {
             background-color: #218838;
         }
+
         #openLinkedInBtn {
             background-color: #0077b5;
         }
+
         #openLinkedInBtn:hover {
             background-color: #005885;
         }
+
+        textarea {
+            font-family: inherit;
+        }
     </style>
 </head>
+
 <body>
     <h1>Connect Z</h1>
-    <div id="status" class="checking">Checking...</div>
-    <div id="linkedinWarning" style="display: none; padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; border-radius: 8px; margin: 10px 0; font-size: 14px; text-align: center;">
-        You need to open LinkedIn to use ConnectZ
+
+    <div id="mainMenu">
+        <div id="status" class="checking">Checking...</div>
+        <div id="linkedinWarning"
+            style="display: none; padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; border-radius: 8px; margin: 10px 0; font-size: 14px; text-align: center;">
+            You need to open LinkedIn to use ConnectZ
+        </div>
+        <button id="refreshBtn">Refresh Status</button>
+        <button id="loginBtn" style="display: none;">Login Now</button>
+        <button id="openLinkedInBtn" style="display: none; background-color: #0077b5;">Open LinkedIn</button>
+
+        <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
+            <button id="goToGeneratePostBtn" style="background-color: #666;">Generate Post</button>
+            <button id="goToGenerateCommentBtn" style="background-color: #666;">Generate Comment</button>
+        </div>
     </div>
-    <button id="refreshBtn">Refresh Status</button>
-    <button id="loginBtn" style="display: none;">Login Now</button>
-    <button id="openLinkedInBtn" style="display: none; background-color: #0077b5;">Open LinkedIn</button>
+
+    <!-- Generate Post View -->
+    <div id="generatePostView" style="display: none;">
+        <button id="backFromPostBtn"
+            style="background-color: #f3e7e7; border-radius: 4px; color: #666; width: auto; padding: 5px; margin: 0 0 10px 0; text-align: left;">Go
+            Back</button>
+        <h2>Generate Post</h2>
+        <textarea id="roughPostContent" placeholder="Enter rough outline for your post..."
+            style="width: 100%; height: 100px; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; box-sizing: border-box;"></textarea>
+        <button id="generatePostBtn">Generate Post</button>
+
+        <div id="postResultContainer" style="display: none; margin-top: 15px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Generated Post:</label>
+            <div id="generatedPostOutput"
+                style="background: #f9f9f9; padding: 10px; border: 1px solid #eee; border-radius: 4px; white-space: pre-wrap; font-size: 13px; max-height: 200px; overflow-y: auto;">
+            </div>
+            <button id="copyPostBtn" style="background-color: #28a745; margin-top: 5px;">Copy Text</button>
+        </div>
+    </div>
+
+    <!-- Generate Comment View -->
+    <div id="generateCommentView" style="display: none;">
+        <button id="backFromCommentBtn"
+            style="background-color: #f3e7e7; border-radius: 4px; color: #666; width: auto; padding: 5px; margin: 0 0 10px 0; text-align: left;">Go
+            Back</button>
+        <h2>Generate Comment</h2>
+
+        <label style="display: block; margin-bottom: 5px; font-size: 13px;">Post Content:</label>
+        <textarea id="postContentForComment" placeholder="Paste the LinkedIn post content here..."
+            style="width: 100%; height: 80px; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; box-sizing: border-box;"></textarea>
+
+        <label style="display: block; margin-bottom: 5px; font-size: 13px;">Optional Comment (for rephrasing):</label>
+        <textarea id="optionalComment" placeholder="Enter your comment to rephrase (optional)..."
+            style="width: 100%; height: 60px; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; box-sizing: border-box;"></textarea>
+
+        <button id="generateCommentBtn">Generate Comment</button>
+
+        <div id="commentResultContainer" style="display: none; margin-top: 15px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Generated Comment:</label>
+            <div id="generatedCommentOutput"
+                style="background: #f9f9f9; padding: 10px; border: 1px solid #eee; border-radius: 4px; white-space: pre-wrap; font-size: 13px; max-height: 150px; overflow-y: auto;">
+            </div>
+            <button id="copyCommentBtn" style="background-color: #28a745; margin-top: 5px;">Copy Text</button>
+        </div>
+    </div>
+
     <script src="popup.js"></script>
 </body>
+
 </html>
