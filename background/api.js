@@ -26,6 +26,10 @@ export async function generateCommentResponse(postContent) {
     });
 
     if (!res.ok) {
+        const error = await res.json();
+        if (error) {
+            throw new Error(error.error);
+        }
         throw new Error("Unable to generate comment. Please try again later.");
     }
 
@@ -76,6 +80,10 @@ export async function generatePostResponse(roughPostContent) {
     });
 
     if (!res.ok) {
+        const error = await res.json();
+        if (error) {
+            throw new Error(error.error);
+        }
         throw new Error("Unable to generate post. Please try again later.");
     }
 
@@ -132,6 +140,10 @@ export async function generateRephraseCommentResponse(postContent, existingComme
     });
 
     if (!res.ok) {
+        const error = await res.json();
+        if (error) {
+            throw new Error(error.error);
+        }
         throw new Error("Unable to rephrase comment. Please try again later.");
     }
 

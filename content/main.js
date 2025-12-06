@@ -1,8 +1,10 @@
 // content/main.js
 import { processEditors } from './ui.js';
+import { initFloatingButton } from './floating_button.js';
 
 // Initial processing
 processEditors();
+initFloatingButton();
 
 // Set up observer to handle dynamic content loading
 const observer = new MutationObserver((mutations) => {
