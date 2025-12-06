@@ -21,7 +21,7 @@ function getBaseUrl() {
                     })
                     .catch(() => {
                         // Dev server not reachable, use production
-                        const prodUrl = "https://connectz.site";
+                        const prodUrl = "http://16.171.166.83";
                         chrome.storage.local.set({ base_url: prodUrl });
                         resolve(prodUrl);
                     });
