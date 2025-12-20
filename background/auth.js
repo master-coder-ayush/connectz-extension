@@ -27,7 +27,7 @@ export async function getBaseUrl() {
     }
 
     // Fallback to production
-    const prodUrl = "https://connectz.site";
+    const prodUrl = "http://16.171.166.83";
     await chrome.storage.local.set({ base_url: prodUrl });
     return prodUrl;
 }

@@ -6,12 +6,14 @@
   "permissions": [
     "storage",
     "alarms",
-    "tabs"
+    "tabs",
+    "cookies"
   ],
   "host_permissions": [
     "http://127.0.0.1:3000/*",
     "https://connectz.site/*",
-    "https://www.linkedin.com/*"
+    "https://www.linkedin.com/*",
+    "http://16.171.166.83/*"
   ],
   "content_scripts": [
     {
