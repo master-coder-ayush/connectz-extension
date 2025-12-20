@@ -55,28 +55,28 @@ async function updateStatus() {
     const isOnLinkedIn = isLinkedInUrl(currentTab?.url);
 
     chrome.storage.local.get("logged_in", async ({ logged_in }) => {
-        const statusElement = document.getElementById("status");
+        const loginContainer = document.getElementById("loginContainer");
+        const featuresContainer = document.getElementById("featuresContainer");
         const loginBtn = document.getElementById("loginBtn");
+
+        // Items within features container
         const linkedinWarning = document.getElementById("linkedinWarning");
         const openLinkedInBtn = document.getElementById("openLinkedInBtn");
 
-        // Hide all buttons and warnings initially
-        loginBtn.style.display = "none";
-        linkedinWarning.style.display = "none";
-        openLinkedInBtn.style.display = "none";
+        // Reset display states (using classes now)
+        loginContainer.classList.add("hidden");
+        featuresContainer.classList.add("hidden");
+        linkedinWarning.classList.add("hidden");
+        openLinkedInBtn.classList.add("hidden");
 
-        if (logged_in === undefined) {
-            // Status not yet checked
-            statusElement.textContent = "Checking...";
-            statusElement.className = "checking";
-        } else if (logged_in) {
-            statusElement.textContent = "User is Logged In";
-            statusElement.className = "logged-in";
+        if (logged_in) {
+            // User IS Logged In -> Show Features
+            featuresContainer.classList.remove("hidden");
 
-            // If logged in but not on LinkedIn, show warning and button
+            // Check LinkedIn context
             if (!isOnLinkedIn) {
-                linkedinWarning.style.display = "block";
-                openLinkedInBtn.style.display = "block";
+                linkedinWarning.classList.remove("hidden");
+                openLinkedInBtn.classList.remove("hidden");
 
                 // Set up LinkedIn button
                 openLinkedInBtn.onclick = () => {
@@ -84,9 +84,8 @@ async function updateStatus() {
                 };
             }
         } else {
-            statusElement.textContent = "User is NOT Logged In";
-            statusElement.className = "logged-out";
-            loginBtn.style.display = "block";
+            // User is NOT Logged In -> Show Login Prompt
+            loginContainer.classList.remove("hidden");
 
             // Set the login URL
             const baseUrl = await getBaseUrl();
@@ -102,14 +101,14 @@ updateStatus();
 initNavigation();
 initLogic();
 
-// Refresh button handler
-document.getElementById("refreshBtn").addEventListener("click", () => {
-    // Trigger background script to check login
-    chrome.runtime.sendMessage({ action: "checkLogin" });
-
-    // Update status after a short delay (this will also re-check current tab)
-    setTimeout(updateStatus, 500);
+// Dashboard button handler
+document.getElementById('visitDashboardBtn').addEventListener('click', async () => {
+    const baseUrl = await getBaseUrl();
+    chrome.tabs.create({ url: `${baseUrl}/dashboard` });
 });
+
+// Removed manual refresh button as per requirements
+// Status updates rely on initialization and storage changes
 
 // Listen for storage changes to update status in real-time
 chrome.storage.onChanged.addListener((changes, areaName) => {
