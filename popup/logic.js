@@ -20,7 +20,7 @@ export function initLogic() {
 
         generatePostBtn.disabled = true;
         generatePostBtn.textContent = 'Generating...';
-        postResultContainer.style.display = 'none';
+        postResultContainer.classList.add('hidden');
 
         chrome.runtime.sendMessage(
             { action: 'generatePost', roughPostContent: content },
@@ -30,7 +30,7 @@ export function initLogic() {
 
                 if (response && response.success) {
                     generatedPostOutput.textContent = response.post;
-                    postResultContainer.style.display = 'block';
+                    postResultContainer.classList.remove('hidden');
                 } else {
                     alert('Error: ' + (response?.error || 'Unknown error occurred'));
                 }
@@ -68,7 +68,7 @@ export function initLogic() {
 
         generateCommentBtn.disabled = true;
         generateCommentBtn.textContent = 'Generating...';
-        commentResultContainer.style.display = 'none';
+        commentResultContainer.classList.add('hidden');
 
         let action = 'generateComment';
         let payload = { postContent };
@@ -86,7 +86,7 @@ export function initLogic() {
 
                 if (response && response.success) {
                     generatedCommentOutput.textContent = response.comment;
-                    commentResultContainer.style.display = 'block';
+                    commentResultContainer.classList.remove('hidden');
                 } else {
                     alert('Error: ' + (response?.error || 'Unknown error occurred'));
                 }

@@ -11,17 +11,17 @@ const generateCommentView = document.getElementById('generateCommentView');
  */
 export function switchView(viewName) {
     // Hide all views first
-    mainMenu.style.display = 'none';
-    generatePostView.style.display = 'none';
-    generateCommentView.style.display = 'none';
+    mainMenu.classList.add('hidden');
+    generatePostView.classList.add('hidden');
+    generateCommentView.classList.add('hidden');
 
     // Show requested view
     if (viewName === 'generatePostView') {
-        generatePostView.style.display = 'block';
+        generatePostView.classList.remove('hidden');
     } else if (viewName === 'generateCommentView') {
-        generateCommentView.style.display = 'block';
+        generateCommentView.classList.remove('hidden');
     } else {
-        mainMenu.style.display = 'block';
+        mainMenu.classList.remove('hidden');
     }
 
     // Save state
