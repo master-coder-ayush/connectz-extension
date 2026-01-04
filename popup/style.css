@@ -3,26 +3,40 @@
 /* Design System Variables */
 :root {
     /* Colors */
-    --primary-color: #4F46E5; /* Indigo 600 */
-    --primary-hover: #4338CA; /* Indigo 700 */
-    --secondary-color: #10B981; /* Emerald 500 */
-    --secondary-hover: #059669; /* Emerald 600 */
-    --background-color: #F9FAFB; /* Gray 50 */
-    --surface-color: #FFFFFF; /* White */
-    --text-main: #111827; /* Gray 900 */
-    --text-secondary: #4B5563; /* Gray 600 */
-    --text-muted: #9CA3AF; /* Gray 400 */
-    --border-color: #E5E7EB; /* Gray 200 */
-    --danger-color: #EF4444; /* Red 500 */
-    --warning-bg: #FFFBEB; /* Amber 50 */
-    --warning-text: #B45309; /* Amber 700 */
-    --warning-border: #FCD34D; /* Amber 300 */
-    
+    --primary-color: #FFD700;
+    /* Indigo 600 */
+    --primary-hover: #e4c200;
+    /* Indigo 700 */
+    --secondary-color: #10B981;
+    /* Emerald 500 */
+    --secondary-hover: #059669;
+    /* Emerald 600 */
+    --background-color: #F9FAFB;
+    /* Gray 50 */
+    --surface-color: #FFFFFF;
+    /* White */
+    --text-main: #111827;
+    /* Gray 900 */
+    --text-secondary: #4B5563;
+    /* Gray 600 */
+    --text-muted: #9CA3AF;
+    /* Gray 400 */
+    --border-color: #E5E7EB;
+    /* Gray 200 */
+    --danger-color: #EF4444;
+    /* Red 500 */
+    --warning-bg: #FFFBEB;
+    /* Amber 50 */
+    --warning-text: #B45309;
+    /* Amber 700 */
+    --warning-border: #FCD34D;
+    /* Amber 300 */
+
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    
+
     /* Typography */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
@@ -33,7 +47,8 @@
 }
 
 body {
-    width: 380px; /* Slightly wider for better breathing room */
+    width: 380px;
+    /* Slightly wider for better breathing room */
     margin: 0;
     padding: 24px;
     font-family: var(--font-family);
@@ -69,8 +84,15 @@ h2 {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Components */
@@ -251,7 +273,8 @@ textarea::placeholder {
     max-height: 200px;
     overflow-y: auto;
     margin-bottom: 12px;
-    font-family: inherit; /* Ensure font consistency */
+    font-family: inherit;
+    /* Ensure font consistency */
 }
 
 /* Scrollbar Styling */

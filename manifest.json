@@ -34,6 +34,14 @@
       "matches": [
         "https://www.linkedin.com/*"
       ]
+    },
+    {
+      "resources": [
+        "icon.png"
+      ],
+      "matches": [
+        "https://www.linkedin.com/*"
+      ]
     }
   ],
   "background": {

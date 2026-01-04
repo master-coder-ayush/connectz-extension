@@ -10,7 +10,7 @@
  */
 function getVisiblePostContent() {
     // Select all post containers
-    const posts = document.querySelectorAll('.feed-shared-update-v2');
+    const posts = document.querySelectorAll('p[data-view-name="feed-commentary"], .feed-shared-update-v2, .update-components-update-v2__commentary');
 
     let closestPost = null;
     let minDistance = Infinity;
@@ -37,7 +37,9 @@ function getVisiblePostContent() {
 
     // Extract content from the closest post
     const postTextElement = closestPost.querySelector('.update-components-text') ||
-        closestPost.querySelector('.update-components-update-v2__commentary');
+        closestPost.querySelector('.update-components-update-v2__commentary') ||
+        closestPost.querySelector('.tvm-parent-container') ||
+        closestPost;
 
     if (!postTextElement) return null;
 
@@ -58,14 +60,20 @@ function getVisiblePostContent() {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = text;
     text = tempDiv.textContent || tempDiv.innerText || text;
-
     // Clean up the text
-    text = text.replace(/\n{3,}/g, '\n\n')  // Replace 3+ line breaks with double
+    text = text
+        .replace(/\r\n|\r/g, '\n')     // normalize newlines
+        .replace(/[\u00A0\u200B]/g, '') // remove invisible spaces
+        .replace(/\n{3,}/g, '\n\n')  // Replace 3+ line breaks with double
+        .replace(/\n\s+\n/g, '\n\n')
         .replace(/[ \t]+/g, ' ')       // Replace multiple spaces with single
         .replace(/\n /g, '\n')          // Remove spaces after line breaks
         .replace(/ \n/g, '\n')          // Remove spaces before line breaks
+        .replace(/… more/g, "")
+        .replace(/hashtag/g, '')
+        .replace(/(#\w+)\n\s*\n(?=#\w+)/g, '$1\n')
+        .replace(/([•👉])([^\n]+)\n\s*\n(?=[•👉])/g, '$1$2\n')
         .trim();
-
     return text;
 }
 
@@ -216,7 +224,7 @@ function showContentSidebar(content) {
         <button id="connectz-gen-comment-btn" style="
             width: 100%;
             padding: 8px 16px;
-            background-color: #0a66c2;
+            background-color: #FFD700;
             color: white;
             border: none;
             border-radius: 20px;
@@ -268,7 +276,7 @@ function showContentSidebar(content) {
         <button id="connectz-gen-post-btn" style="
             width: 100%;
             padding: 8px 16px;
-            background-color: #0a66c2;
+            background-color: #FFD700;
             color: white;
             border: none;
             border-radius: 20px;
@@ -413,7 +421,12 @@ export function initFloatingButton() {
 
     const btn = document.createElement('button');
     btn.id = 'connectz-floating-btn';
-    btn.textContent = 'cz';
+    const icon = document.createElement('img');
+    icon.src = chrome.runtime.getURL('icon.png');
+    icon.style.width = '24px';
+    icon.style.height = '24px';
+    icon.style.pointerEvents = 'none'; // Prevent dragging
+    btn.appendChild(icon);
     btn.title = 'Show Connect Z Tools';
 
     // Styles
@@ -426,10 +439,7 @@ export function initFloatingButton() {
         height: 50px;
         border-radius: 50%;
         background-color: black;
-        color: #fbbf24; /* Yellow-ish color */
         border: 2px solid #fbbf24;
-        font-weight: bold;
-        font-size: 18px;
         cursor: pointer;
         z-index: 9999;
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
@@ -437,7 +447,6 @@ export function initFloatingButton() {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-family: sans-serif;
     `;
 
     // Hover effects

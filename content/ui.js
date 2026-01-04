@@ -587,8 +587,14 @@ export function addRotateButton(editor) {
  * Process all editors on the page to add buttons.
  */
 export function processEditors() {
+    const editorsFromButton = []
+    let emojiButtons = document.querySelectorAll('button[data-view-name="comment-emoji-picker"]');
+    emojiButtons.forEach(button => {
+        editorsFromButton.push(button.parentElement)
+    })
+
     // Find all Quill editors
-    const editors = document.querySelectorAll('.ql-editor');
+    const editors = document.querySelectorAll('.ql-editor') || editorsFromButton;
 
     editors.forEach(editor => {
         // Check if we've already processed this editor
