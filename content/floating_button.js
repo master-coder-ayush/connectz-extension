@@ -141,8 +141,19 @@ function showContentSidebar(content) {
         align-items: center;
         background-color: #f9fafb;
         flex-shrink: 0;
+        gap: 12px;
     `;
 
+    // Icon
+    const icon = document.createElement('img');
+    icon.src = chrome.runtime.getURL('icon.png');
+    icon.style.cssText = `
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+    `;
+
+    // Title
     const title = document.createElement('h3');
     title.textContent = 'Connect Z Tools';
     title.style.cssText = `
@@ -150,8 +161,10 @@ function showContentSidebar(content) {
         font-size: 18px;
         font-weight: 600;
         color: #1f2937;
+        flex: 1;
     `;
 
+    // Close button
     const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '&times;';
     closeBtn.style.cssText = `
@@ -162,6 +175,7 @@ function showContentSidebar(content) {
         color: #6b7280;
         padding: 0;
         line-height: 1;
+        flex-shrink: 0;
     `;
 
     closeBtn.onclick = () => {
@@ -172,6 +186,7 @@ function showContentSidebar(content) {
         }, 300);
     };
 
+    header.appendChild(icon);
     header.appendChild(title);
     header.appendChild(closeBtn);
 
@@ -308,6 +323,76 @@ function showContentSidebar(content) {
         </div>
     `;
     body.appendChild(generatePostSection);
+
+    // --- Section 4: Sliding Tips ---
+    const tipsData = [
+        'Comment in the first 60 minutes for maximum reach.',
+        '8–15 word comments perform better than long ones.',
+        'End comments with a question to boost replies.',
+        'Early comments help posts re-enter the feed.',
+        'Consistent commenting beats posting once in a while.',
+        'Strong first line = higher comment visibility.',
+        'Treat every comment like micro-content.',
+        'Daily engagement grows reach faster than daily posting.',
+        'Relevant comments outperform generic praise.',
+        'Smart comments build authority, not noise.'
+    ];
+
+    const tipsSection = document.createElement('div');
+    tipsSection.innerHTML = `
+        <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #374151;">Pro Tips</h4>
+        <div id="connectz-tips-container" style="
+            background-color: #FFD700;
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
+            position: relative;
+            overflow: hidden;
+        ">
+            <div id="connectz-tip-text" style="transition: opacity 0.3s ease-in-out;"></div>
+        </div>
+    `;
+    body.appendChild(tipsSection);
+
+    // Tips functionality
+    let currentTipIndex = 0;
+    let tipsAutoScrollInterval = null;
+    const tipsContainer = body.querySelector('#connectz-tips-container');
+    const tipText = body.querySelector('#connectz-tip-text');
+
+    function updateTipDisplay() {
+        tipText.style.opacity = '0';
+        setTimeout(() => {
+            tipText.textContent = tipsData[currentTipIndex];
+            tipText.style.opacity = '1';
+        }, 150);
+    }
+
+    function startTipsAutoScroll() {
+        if (tipsAutoScrollInterval) clearInterval(tipsAutoScrollInterval);
+        tipsAutoScrollInterval = setInterval(() => {
+            currentTipIndex = (currentTipIndex + 1) % tipsData.length;
+            updateTipDisplay();
+        }, 5000);
+    }
+
+    function stopTipsAutoScroll() {
+        if (tipsAutoScrollInterval) clearInterval(tipsAutoScrollInterval);
+    }
+
+    tipsContainer.addEventListener('mouseenter', stopTipsAutoScroll);
+    tipsContainer.addEventListener('mouseleave', startTipsAutoScroll);
+
+    updateTipDisplay();
+    startTipsAutoScroll();
 
     sidebar.appendChild(header);
     sidebar.appendChild(body);
