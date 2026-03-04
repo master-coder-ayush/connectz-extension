@@ -7,6 +7,7 @@ import {
     clearEditorContent,
     insertAtCursor
 } from './dom.js';
+import { showToast } from './toast.js';
 
 /**
  * Request a generated comment from the background script.
@@ -225,60 +226,153 @@ export function addPlusButton(editor) {
         plusBtn.textContent = '…';
         plusBtn.disabled = true;
 
-        try {
-            // Check if this is a post composer or comment box
-            const isPost = isPostComposer(editor);
+        // Check if this is a post composer or comment box
+        const isPost = isPostComposer(editor);
 
-            if (isPost) {
-                // For post composers: extract rough post content from the editor itself
-                const roughPostContent = extractRoughPostContent(editor);
+        // Capture references NOW before the user scrolls away
+        const postContainer = editor.closest('[data-urn]') ||
+            editor.closest('.feed-shared-update-v2') ||
+            editor.closest('article');
+        const editorRef = editor;
 
-                if (!roughPostContent) {
-                    throw new Error("Please write some rough post content first.");
-                }
-
-                const generatedPost = await requestGeneratedPost(roughPostContent);
-
-                // Small delay to ensure editor is ready
-                setTimeout(() => {
-                    clearEditorContent(editor);
-                    insertAtCursor(generatedPost, editor);
-                    // Keep button visible by refocusing editor
-                    editor.focus();
-                }, 50);
-            } else {
-                // For comment boxes: extract post content from the DOM
-                const postContent = extractPostContent(editor);
-
-                if (!postContent) {
-                    throw new Error("Unable to extract post content from LinkedIn.");
-                }
-
-                const generatedComment = await requestGeneratedComment(postContent);
-
-                // Small delay to ensure editor is ready
-                setTimeout(() => {
-                    clearEditorContent(editor);
-                    insertAtCursor(generatedComment, editor);
-                    // Keep button visible by refocusing editor
-                    editor.focus();
-                }, 50);
+        // Quick validation
+        if (isPost) {
+            const roughPostContent = extractRoughPostContent(editor);
+            if (!roughPostContent) {
+                showToast({
+                    type: 'error',
+                    title: 'No content found',
+                    message: 'Please write some rough post content first.',
+                    duration: 5000
+                });
+                plusBtn.textContent = originalLabel || '+';
+                plusBtn.disabled = false;
+                buttonShouldStayVisible = false;
+                return;
             }
-        } catch (error) {
-            console.error("Error generating content:", error);
-            const fallbackMessage =
-                error?.message ||
-                "Unable to generate content. Please try again in a moment.";
-            setTimeout(() => {
-                clearEditorContent(editor);
-                insertAtCursor(fallbackMessage, editor);
-                editor.focus();
-            }, 50);
-        } finally {
+        } else {
+            const postContent = extractPostContent(editor);
+            if (!postContent) {
+                showToast({
+                    type: 'error',
+                    title: 'Cannot find post',
+                    message: 'Unable to extract post content from LinkedIn.',
+                    duration: 5000
+                });
+                plusBtn.textContent = originalLabel || '+';
+                plusBtn.disabled = false;
+                buttonShouldStayVisible = false;
+                return;
+            }
+        }
+
+        // Show brief loading indication then restore button
+        setTimeout(() => {
             plusBtn.textContent = originalLabel || '+';
             plusBtn.disabled = false;
-            // Restore button state
             buttonShouldStayVisible = false;
+        }, 600);
+
+        // Show a "generating" toast while waiting
+        const loadingToast = showToast({
+            type: 'generating',
+            title: isPost ? 'Generating post…' : 'Generating comment…',
+            message: 'You can keep scrolling — we\'ll notify you when it\'s ready.',
+            duration: 0  // No auto-dismiss — we'll dismiss manually
+        });
+
+        // Fire API call in the background (non-blocking)
+        try {
+            let generatedText;
+
+            if (isPost) {
+                const roughPostContent = extractRoughPostContent(editorRef);
+                generatedText = await requestGeneratedPost(roughPostContent);
+            } else {
+                const postContent = extractPostContent(editorRef);
+                generatedText = await requestGeneratedComment(postContent);
+            }
+
+            // Dismiss loading toast
+            loadingToast.dismiss();
+
+            // Build action buttons for the success toast
+            const actions = [];
+
+            // 1. Scroll to Post
+            if (postContainer && postContainer.isConnected) {
+                actions.push({
+                    label: 'Scroll to Post',
+                    icon: '📍',
+                    onClick: () => {
+                        postContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+
+            // 2. Copy to Clipboard
+            actions.push({
+                label: 'Copy',
+                icon: '📋',
+                onClick: () => {
+                    navigator.clipboard.writeText(generatedText).catch(() => {
+                        // Fallback for clipboard API failure
+                        const textarea = document.createElement('textarea');
+                        textarea.value = generatedText;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        textarea.remove();
+                    });
+                }
+            });
+
+            // 3. Paste into Editor (primary action)
+            if (editorRef && editorRef.isConnected) {
+                actions.push({
+                    label: 'Paste',
+                    icon: '✏️',
+                    primary: true,
+                    onClick: () => {
+                        // Scroll to the post first so user sees the editor
+                        if (postContainer && postContainer.isConnected) {
+                            postContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        setTimeout(() => {
+                            editorRef.focus();
+                            clearEditorContent(editorRef);
+                            insertAtCursor(generatedText, editorRef);
+                        }, 400);
+                    }
+                });
+            }
+
+            // Show success toast with preview and actions
+            const previewText = generatedText.length > 120
+                ? generatedText.substring(0, 120) + '…'
+                : generatedText;
+
+            showToast({
+                type: 'success',
+                title: isPost ? '✨ Post generated!' : '✨ Comment generated!',
+                message: previewText,
+                duration: 20000,
+                actions
+            });
+
+        } catch (error) {
+            // Dismiss loading toast
+            loadingToast.dismiss();
+
+            console.error("Error generating content:", error);
+            showToast({
+                type: 'error',
+                title: isPost ? 'Post generation failed' : 'Comment generation failed',
+                message: error?.message || 'Something went wrong. Please try again.',
+                duration: 8000
+            });
         }
     });
 
@@ -455,53 +549,150 @@ export function addRotateButton(editor) {
         rotateBtn.textContent = '…';
         rotateBtn.disabled = true;
 
-        try {
-            // Check if this is a comment box (not a post composer)
-            const isPost = isPostComposer(editor);
+        // Check if this is a post composer
+        const isPost = isPostComposer(editor);
 
-            if (isPost) {
-                // Rotate button only works for comments
-                throw new Error("Rephrase is only available for comments.");
-            }
-
-            // Get existing comment from editor
-            const existingComment = editor.textContent || editor.innerText || '';
-
-            if (!existingComment.trim()) {
-                throw new Error("Please write a comment first.");
-            }
-
-            // Extract post content from DOM
-            const postContent = extractPostContent(editor);
-
-            if (!postContent) {
-                throw new Error("Unable to extract post content from LinkedIn.");
-            }
-
-            const rephraseComment = await requestRephraseComment(postContent, existingComment);
-
-            // Small delay to ensure editor is ready
-            setTimeout(() => {
-                clearEditorContent(editor);
-                insertAtCursor(rephraseComment, editor);
-                // Keep button visible by refocusing editor
-                editor.focus();
-            }, 50);
-        } catch (error) {
-            console.error("Error rephrasing comment:", error);
-            const fallbackMessage =
-                error?.message ||
-                "Unable to rephrase comment. Please try again in a moment.";
-            setTimeout(() => {
-                clearEditorContent(editor);
-                insertAtCursor(fallbackMessage, editor);
-                editor.focus();
-            }, 50);
-        } finally {
+        if (isPost) {
+            showToast({
+                type: 'error',
+                title: 'Not available',
+                message: 'Rephrase is only available for comments.',
+                duration: 5000
+            });
             rotateBtn.textContent = originalLabel || '↻';
             rotateBtn.disabled = false;
-            // Restore button state
             buttonShouldStayVisible = false;
+            return;
+        }
+
+        // Get existing comment from editor
+        const existingComment = editor.textContent || editor.innerText || '';
+
+        if (!existingComment.trim()) {
+            showToast({
+                type: 'error',
+                title: 'No comment found',
+                message: 'Please write a comment first.',
+                duration: 5000
+            });
+            rotateBtn.textContent = originalLabel || '↻';
+            rotateBtn.disabled = false;
+            buttonShouldStayVisible = false;
+            return;
+        }
+
+        // Extract post content
+        const postContent = extractPostContent(editor);
+        if (!postContent) {
+            showToast({
+                type: 'error',
+                title: 'Cannot find post',
+                message: 'Unable to extract post content from LinkedIn.',
+                duration: 5000
+            });
+            rotateBtn.textContent = originalLabel || '↻';
+            rotateBtn.disabled = false;
+            buttonShouldStayVisible = false;
+            return;
+        }
+
+        // Capture references NOW before user scrolls
+        const postContainer = editor.closest('[data-urn]') ||
+            editor.closest('.feed-shared-update-v2') ||
+            editor.closest('article');
+        const editorRef = editor;
+
+        // Restore button quickly
+        setTimeout(() => {
+            rotateBtn.textContent = originalLabel || '↻';
+            rotateBtn.disabled = false;
+            buttonShouldStayVisible = false;
+        }, 600);
+
+        // Show generating toast
+        const loadingToast = showToast({
+            type: 'generating',
+            title: 'Rephrasing comment…',
+            message: 'You can keep scrolling — we\'ll notify you when it\'s ready.',
+            duration: 0
+        });
+
+        // Fire API in background
+        try {
+            const rephrasedComment = await requestRephraseComment(postContent, existingComment);
+
+            loadingToast.dismiss();
+
+            // Build actions
+            const actions = [];
+
+            if (postContainer && postContainer.isConnected) {
+                actions.push({
+                    label: 'Scroll to Post',
+                    icon: '📍',
+                    onClick: () => {
+                        postContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+
+            actions.push({
+                label: 'Copy',
+                icon: '📋',
+                onClick: () => {
+                    navigator.clipboard.writeText(rephrasedComment).catch(() => {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = rephrasedComment;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        textarea.remove();
+                    });
+                }
+            });
+
+            if (editorRef && editorRef.isConnected) {
+                actions.push({
+                    label: 'Paste',
+                    icon: '✏️',
+                    primary: true,
+                    onClick: () => {
+                        if (postContainer && postContainer.isConnected) {
+                            postContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        setTimeout(() => {
+                            editorRef.focus();
+                            clearEditorContent(editorRef);
+                            insertAtCursor(rephrasedComment, editorRef);
+                        }, 400);
+                    }
+                });
+            }
+
+            const previewText = rephrasedComment.length > 120
+                ? rephrasedComment.substring(0, 120) + '…'
+                : rephrasedComment;
+
+            showToast({
+                type: 'success',
+                title: '✨ Comment rephrased!',
+                message: previewText,
+                duration: 20000,
+                actions
+            });
+
+        } catch (error) {
+            loadingToast.dismiss();
+
+            console.error("Error rephrasing comment:", error);
+            showToast({
+                type: 'error',
+                title: 'Rephrase failed',
+                message: error?.message || 'Something went wrong. Please try again.',
+                duration: 8000
+            });
         }
     });
 

@@ -1,10 +1,12 @@
 // content/main.js
 import { processEditors } from './ui.js';
 import { initFloatingButton } from './floating_button.js';
+import { injectToastStyles } from './toast.js';
 
 // Initial processing
 processEditors();
 initFloatingButton();
+injectToastStyles();
 
 // Set up observer to handle dynamic content loading (e.g. new comments appearing)
 const observer = new MutationObserver((mutations) => {
