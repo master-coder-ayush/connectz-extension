@@ -46,6 +46,16 @@
                     </svg>
                     <span>Generate Comment</span>
                 </button>
+                </button>
+                <button id="goToAnalyticsBtn" class="feature-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    <span>Stats</span>
+                </button>
             </div>
             <button id="visitDashboardBtn" class="btn-secondary"
                 style="margin-top: 12px; padding: 8px; font-size: 13px;">Visit Dashboard</button>
@@ -70,7 +80,7 @@
 
     <!-- Generate Comment View -->
     <div id="generateCommentView" class="hidden fade-in">
-        <button id="backFromCommentBtn" class="btn-ghost">← Back to Menu</button>
+        <button id="backFromCommentBtn" class="btn-ghost">Back to Menu</button>
         <h2>Generate Comment</h2>
 
         <div class="card">
@@ -89,6 +99,58 @@
             <label>Generated Comment:</label>
             <div id="generatedCommentOutput" class="result-box"></div>
             <button id="copyCommentBtn" class="btn-success">Copy Text</button>
+        </div>
+    </div>
+
+    <!-- Analytics View -->
+    <div id="analyticsView" class="hidden fade-in">
+        <button id="backFromAnalyticsBtn" class="btn-ghost">Back to Menu</button>
+        <h2 style="display:flex; justify-content:space-between; align-items:center;">
+            Your Progress
+            <small style="font-size:12px; font-weight:400; color:var(--text-muted);" id="analyticsDate">Today</small>
+        </h2>
+
+        <!-- Stats Summary -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="statToday">0</div>
+                <div class="stat-label">Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statWeekly">0</div>
+                <div class="stat-label">Week</div>
+            </div>
+            <div class="stat-card highlight">
+                <div class="stat-value" id="statStreak">0</div>
+                <div class="stat-label">Streak</div>
+            </div>
+        </div>
+
+        <!-- Weekly Chart -->
+        <div class="card chart-section">
+            <label>Weekly Activity</label>
+            <div class="chart-container" id="weeklyChart">
+                <!-- Bars will be injected here -->
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="card">
+            <label>Badges & Achievements</label>
+            <div class="badges-grid" id="badgesGrid">
+                <!-- Badges will be injected here -->
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="card">
+            <label id="nextBadgeLabel">Next: 5-Day Streak</label>
+            <div class="progress-container">
+                <div class="progress-bar" id="nextBadgeProgress" style="width: 0%"></div>
+            </div>
+            <div style="text-align:right; font-size:11px; color:var(--text-secondary); margin-top:4px;"
+                id="nextBadgeText">0%</div>
         </div>
     </div>
 

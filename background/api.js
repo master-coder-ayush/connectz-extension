@@ -167,3 +167,81 @@ export async function generateRephraseCommentResponse(postContent, existingComme
 
     return rephraseComment.trim();
 }
+
+/**
+ * Fetch weekly user analytics stats.
+ * @returns {Promise<Object>}
+ */
+export async function getWeeklyStats() {
+    try {
+        const baseUrl = await getBaseUrl();
+        const endpoint = `${baseUrl.replace(/\/$/, "")}/api/stats/weekly`;
+
+        const res = await fetch(endpoint, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        if (!res.ok) return getMockData('weekly');
+        return await res.json();
+    } catch (e) {
+        console.warn("Failed to fetch weekly stats, using mock data:", e);
+        return getMockData('weekly');
+    }
+}
+
+/**
+ * Fetch user badges and achievements.
+ * @returns {Promise<Object>}
+ */
+export async function getBadgesStats() {
+    try {
+        const baseUrl = await getBaseUrl();
+        const endpoint = `${baseUrl.replace(/\/$/, "")}/api/stats/badges`;
+
+        const res = await fetch(endpoint, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        if (!res.ok) return getMockData('badges');
+        return await res.json();
+    } catch (e) {
+        console.warn("Failed to fetch badges stats, using mock data:", e);
+        return getMockData('badges');
+    }
+}
+
+// Mock data for testing and fallback, CAN BE REMOVED in production
+function getMockData(type) {
+    if (type === 'weekly') {
+        return {
+            today_count: 5,
+            weekly_total: 42,
+            streak: 4,
+            daily_breakdown: [
+                { date: 'Mon', count: 2 },
+                { date: 'Tue', count: 5 },
+                { date: 'Wed', count: 8 },
+                { date: 'Thu', count: 4 },
+                { date: 'Fri', count: 12 },
+                { date: 'Sat', count: 6 },
+                { date: 'Sun', count: 5 }
+            ]
+        };
+    } else if (type === 'badges') {
+        return {
+            earned_badges: [
+                { name: 'First Post', icon: '📝' },
+                { name: 'Week Warrior', icon: '⚔️' }
+            ],
+            progress_to_next_badge: {
+                name: '5-Day Streak',
+                percentage: 80,
+                description: '4/5 days'
+            }
+        };
+    }
+    return null;
+}
+
