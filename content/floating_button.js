@@ -491,11 +491,198 @@ function showContentSidebar(content) {
         });
     };
 
+    // --- Section 5: Analytics & Progress ---
+    const analyticsSection = document.createElement('div');
+    analyticsSection.innerHTML = `
+        <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #374151;">Your Progress</h4>
+        <div id="connectz-analytics-container" style="min-height: 100px;">
+            <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">Loading stats...</div>
+        </div>
+    `;
+    body.appendChild(analyticsSection);
+
+    // Load and render analytics
+    loadSidebarAnalytics(analyticsSection.querySelector('#connectz-analytics-container'));
+
     // Trigger slide in animation
     requestAnimationFrame(() => {
         sidebar.style.transform = 'translateX(0)';
     });
 }
+
+/**
+ * Load and render analytics data into the provided container.
+ */
+async function loadSidebarAnalytics(container) {
+    try {
+        const [weeklyStatsRes, badgesStatsRes] = await Promise.all([
+            sendMessage('getWeeklyStats'),
+            sendMessage('getBadgesStats')
+        ]);
+
+        if (!weeklyStatsRes.success || !badgesStatsRes.success) {
+            throw new Error(weeklyStatsRes.error || badgesStatsRes.error || "Stats fetch failed");
+        }
+
+        const weeklyStats = weeklyStatsRes.data;
+        const badgesStats = badgesStatsRes.data;
+
+        container.innerHTML = ''; // Clear loading state
+
+        // 1. Stats Row
+        if (weeklyStats) {
+            const statsRow = document.createElement('div');
+            statsRow.style.cssText = `display: flex; gap: 8px; margin-bottom: 12px;`;
+
+            const createStatCard = (label, value, isHighlight) => `
+                <div style="
+                    flex: 1; 
+                    background: ${isHighlight ? '#FFFBEB' : '#F9FAFB'}; 
+                    border: 1px solid ${isHighlight ? '#FCD34D' : '#E5E7EB'}; 
+                    border-radius: 6px; 
+                    padding: 8px; 
+                    text-align: center;
+                ">
+                    <div style="font-size: 16px; font-weight: 700; color: #111827;">${value}</div>
+                    <div style="font-size: 10px; color: #6B7280; text-transform: uppercase; margin-top: 2px;">${label}</div>
+                </div>
+            `;
+
+            statsRow.innerHTML = `
+                ${createStatCard('Today', weeklyStats.today_count || 0, false)}
+                ${createStatCard('Week', weeklyStats.weekly_total || 0, false)}
+                ${createStatCard('Streak', (weeklyStats.streak || 0) + '🔥', true)}
+            `;
+            container.appendChild(statsRow);
+        }
+
+        // 2. Weekly Chart
+        if (weeklyStats && weeklyStats.daily_breakdown) {
+            const chartContainer = document.createElement('div');
+            chartContainer.style.cssText = `
+                margin-bottom: 12px; 
+                background: #F9FAFB; 
+                border: 1px solid #E5E7EB; 
+                border-radius: 8px; 
+                padding: 12px;
+            `;
+
+            const chartLabel = document.createElement('div');
+            chartLabel.textContent = 'Weekly Activity';
+            chartLabel.style.cssText = `font-size: 11px; font-weight: 600; color: #4B5563; margin-bottom: 8px;`;
+            chartContainer.appendChild(chartLabel);
+
+            const barsContainer = document.createElement('div');
+            barsContainer.style.cssText = `
+                display: flex; 
+                align-items: flex-end; 
+                justify-content: space-between; 
+                height: 60px; 
+                gap: 4px;
+            `;
+
+            const maxVal = Math.max(...weeklyStats.daily_breakdown.map(d => d.count)) || 1;
+
+            weeklyStats.daily_breakdown.forEach(day => {
+                const height = Math.max((day.count / maxVal) * 100, 10); // Min 10% height
+                const barWrapper = document.createElement('div');
+                barWrapper.style.cssText = `flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;`;
+                const dateObj = new Date(day.date);
+                const label = isNaN(dateObj) ? day.date : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                barWrapper.innerHTML = `
+                    <div title="${day.date}: ${day.count}" style="
+                        width: 70%; 
+                        height: ${height}%; 
+                        background-color: #FFD700; 
+                        border-radius: 3px 3px 0 0;
+                        transition: height 0.3s;
+                    "></div>
+                    <div style="font-size: 8px; color: #9CA3AF; margin-top: 4px;">${label}</div>
+                `;
+                barsContainer.appendChild(barWrapper);
+            });
+
+            chartContainer.appendChild(barsContainer);
+            container.appendChild(chartContainer);
+        }
+
+        // 3. Badges (Mini)
+        if (badgesStats && badgesStats.earned_badges && badgesStats.earned_badges.length > 0) {
+            const badgesContainer = document.createElement('div');
+            badgesContainer.style.cssText = `margin-bottom: 12px;`;
+
+            const badgesHeader = document.createElement('div');
+            badgesHeader.textContent = 'Recent Badges';
+            badgesHeader.style.cssText = `font-size: 11px; font-weight: 600; color: #4B5563; margin-bottom: 6px;`;
+            badgesContainer.appendChild(badgesHeader);
+
+            const badgesRow = document.createElement('div');
+            badgesRow.style.cssText = `display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;`;
+
+            badgesStats.earned_badges.forEach(badge => {
+                const badgeEl = document.createElement('div');
+                badgeEl.style.cssText = `
+                    flex-shrink: 0;
+                    background: #F0FDF4; 
+                    border: 1px solid #BBF7D0; 
+                    border-radius: 6px; 
+                    padding: 6px 10px; 
+                    font-size: 10px; 
+                    display: flex; 
+                    align-items: center; 
+                    gap: 6px;
+                `;
+                badgeEl.innerHTML = `<span>${badge.icon || '🏆'}</span> <span>${badge.name}</span>`;
+                badgesRow.appendChild(badgeEl);
+            });
+            badgesContainer.appendChild(badgesRow);
+            container.appendChild(badgesContainer);
+        }
+
+        // 4. Progress Bar
+        if (badgesStats && badgesStats.progress_to_next_badge) {
+            const nextBadge = badgesStats.progress_to_next_badge;
+            const progressContainer = document.createElement('div');
+            progressContainer.style.cssText = `
+                background: white; 
+                border: 1px solid #E5E7EB; 
+                border-radius: 8px; 
+                padding: 10px;
+            `;
+
+            progressContainer.innerHTML = `
+                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                    <span style="color: #4B5563;">Next: <strong>${nextBadge.name}</strong></span>
+                    <span style="color: #6B7280;">${nextBadge.percentage}%</span>
+                </div>
+                <div style="height: 6px; background: #E5E7EB; border-radius: 3px; overflow: hidden;">
+                    <div style="width: ${nextBadge.percentage}%; height: 100%; background: #10B981;"></div>
+                </div>
+            `;
+            container.appendChild(progressContainer);
+        }
+
+    } catch (e) {
+        console.error("Analytics load error:", e);
+        container.innerHTML = '';
+
+        const errorMsg = document.createElement('div');
+        errorMsg.style.cssText = "color: #EF4444; font-size: 12px; text-align: center;";
+        errorMsg.textContent = "Failed to load stats. ";
+
+        const retryBtn = document.createElement('button');
+        retryBtn.textContent = "Retry";
+        retryBtn.style.cssText = "background:none; border:none; color:inherit; text-decoration:underline; cursor:pointer;";
+        retryBtn.onclick = () => {
+            container.innerHTML = '<div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">Loading stats...</div>';
+            loadSidebarAnalytics(container);
+        };
+
+        errorMsg.appendChild(retryBtn);
+        container.appendChild(errorMsg);
+    }
+}
+
 
 /**
  * Initialize the floating button.
@@ -553,7 +740,7 @@ export function initFloatingButton() {
         } else {
             // Show a small toast or alert if no content found
             const toast = document.createElement('div');
-            toast.textContent = 'No post content found in view';
+            toast.textContent = 'Go to Feed and scroll to a post to use Connect Z tools.';
             toast.style.cssText = `
                 position: fixed;
                 bottom: 20px;

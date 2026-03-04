@@ -1,6 +1,12 @@
 // background/main.js
 import { checkLogin } from './auth.js';
-import { generateCommentResponse, generatePostResponse, generateRephraseCommentResponse } from './api.js';
+import {
+    generateCommentResponse,
+    generatePostResponse,
+    generateRephraseCommentResponse,
+    getWeeklyStats,
+    getBadgesStats
+} from './api.js';
 
 // Check login status immediately when extension starts
 checkLogin();
@@ -22,6 +28,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ success: true });
         });
         return true; // Keep the message channel open for async response
+    } else if (request.action === "getWeeklyStats") {
+        getWeeklyStats()
+            .then(data => sendResponse({ success: true, data }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    } else if (request.action === "getBadgesStats") {
+        getBadgesStats()
+            .then(data => sendResponse({ success: true, data }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
     } else if (request.action === "generateComment") {
         generateCommentResponse(request.postContent)
             .then((comment) => {

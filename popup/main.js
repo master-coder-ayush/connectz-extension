@@ -1,34 +1,8 @@
 // popup/main.js
 import { initNavigation } from './navigation.js';
 import { initLogic } from './logic.js';
-
-// Get the base URL (dev or production)
-function getBaseUrl() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get("base_url", ({ base_url }) => {
-            if (base_url) {
-                resolve(base_url);
-            } else {
-                // Try to detect environment - check if dev server is reachable
-                fetch("http://127.0.0.1:3000/api/auth/status", {
-                    credentials: "include"
-                })
-                    .then(() => {
-                        // Dev server is reachable
-                        const devUrl = "http://127.0.0.1:3000";
-                        chrome.storage.local.set({ base_url: devUrl });
-                        resolve(devUrl);
-                    })
-                    .catch(() => {
-                        // Dev server not reachable, use production
-                        const prodUrl = "http://16.171.166.83";
-                        chrome.storage.local.set({ base_url: prodUrl });
-                        resolve(prodUrl);
-                    });
-            }
-        });
-    });
-}
+import { initAnalytics } from './analytics.js';
+import { getBaseUrl } from './utils.js';
 
 // Check if current tab is on LinkedIn
 function isLinkedInUrl(url) {
@@ -100,6 +74,7 @@ async function updateStatus() {
 updateStatus();
 initNavigation();
 initLogic();
+initAnalytics();
 
 // Dashboard button handler
 document.getElementById('visitDashboardBtn').addEventListener('click', async () => {

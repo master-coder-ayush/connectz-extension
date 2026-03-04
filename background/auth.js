@@ -48,7 +48,6 @@ export async function checkLogin() {
         }
 
         const data = await res.json();
-        console.log("Login status:", data.logged_in);
 
         // Store login status in chrome storage
         await chrome.storage.local.set({ logged_in: data.logged_in });
