@@ -667,12 +667,16 @@ async function loadSidebarAnalytics(container) {
         container.innerHTML = '';
 
         const errorMsg = document.createElement('div');
-        errorMsg.style.cssText = "color: #EF4444; font-size: 12px; text-align: center;";
-        errorMsg.textContent = "Failed to load stats. ";
+        errorMsg.style.cssText = "color: #EF4444; font-size: 13px; text-align: center; line-height: 1.5; padding: 10px;";
+
+        let errorText = e.message || "Failed to load stats.";
+        // Parse URLs into native links
+        errorText = errorText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: #3B82F6; text-decoration: underline;">$1</a>');
+        errorMsg.innerHTML = errorText + " <br><br>";
 
         const retryBtn = document.createElement('button');
         retryBtn.textContent = "Retry";
-        retryBtn.style.cssText = "background:none; border:none; color:inherit; text-decoration:underline; cursor:pointer;";
+        retryBtn.style.cssText = "background:none; border:none; color:#6B7280; text-decoration:underline; cursor:pointer;";
         retryBtn.onclick = () => {
             container.innerHTML = '<div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">Loading stats...</div>';
             loadSidebarAnalytics(container);

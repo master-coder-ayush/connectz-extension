@@ -48,7 +48,9 @@ async function loadAnalyticsData() {
 
     } catch (error) {
         console.error("Failed to load analytics:", error);
-        document.getElementById('weeklyChart').innerHTML = `<div style="text-align:center; padding:20px; color:red; font-size:12px;">Failed to load data. <br> <button class="btn-ghost" id="retryAnalyticsBtn">Retry</button></div>`;
+        let errorText = error.message || "Failed to load data.";
+        errorText = errorText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: #3B82F6; text-decoration: underline;">$1</a>');
+        document.getElementById('weeklyChart').innerHTML = `<div style="text-align:center; padding:20px; color:red; font-size:12px;">${errorText} <br><br> <button class="btn-ghost" id="retryAnalyticsBtn">Retry</button></div>`;
         document.getElementById('retryAnalyticsBtn').onclick = () => loadAnalyticsData();
     } finally {
         isLoading = false;

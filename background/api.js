@@ -182,11 +182,16 @@ export async function getWeeklyStats() {
             credentials: "include",
         });
 
-        if (!res.ok) return getMockData('weekly');
+        if (!res.ok) {
+            let errorData = null;
+            try { errorData = await res.json(); } catch (err) { }
+            if (errorData && errorData.error) throw new Error(errorData.error);
+            throw new Error(`HTTP request failed with status ${res.status}`);
+        }
         return await res.json();
     } catch (e) {
-        console.warn("Failed to fetch weekly stats, using mock data:", e);
-        return getMockData('weekly');
+        console.warn("Failed to fetch weekly stats:", e);
+        throw e;
     }
 }
 
@@ -204,11 +209,16 @@ export async function getBadgesStats() {
             credentials: "include",
         });
 
-        if (!res.ok) return getMockData('badges');
+        if (!res.ok) {
+            let errorData = null;
+            try { errorData = await res.json(); } catch (err) { }
+            if (errorData && errorData.error) throw new Error(errorData.error);
+            throw new Error(`HTTP request failed with status ${res.status}`);
+        }
         return await res.json();
     } catch (e) {
-        console.warn("Failed to fetch badges stats, using mock data:", e);
-        return getMockData('badges');
+        console.warn("Failed to fetch badges stats:", e);
+        throw e;
     }
 }
 
