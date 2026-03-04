@@ -137,13 +137,21 @@ function requestGeneratedPost(roughPostContent) {
  * @param {HTMLElement} editor 
  */
 export function addPlusButton(editor) {
-    // Find key containers
-    const editorWrapper = editor.closest('.comments-comment-box-comment__text-editor') ||
+    // Find key containers — use stable selectors that work across LinkedIn DOM versions
+    const editorWrapper =
+        editor.closest('.comments-comment-box-comment__text-editor') ||
+        editor.closest('.comments-comment-box__editor') ||
         editor.closest('.ql-container') ||
+        editor.closest('form') ||
         editor.parentElement;
     const flexContainer = editor.closest('.display-flex.flex-wrap');
     const buttonContainer = flexContainer || editorWrapper;
     const isFlexPlacement = Boolean(flexContainer);
+
+    // Ensure the wrapper has relative positioning so absolute buttons render correctly
+    if (editorWrapper && getComputedStyle(editorWrapper).position === 'static') {
+        editorWrapper.style.position = 'relative';
+    }
 
     if (!buttonContainer) return;
 
@@ -274,11 +282,6 @@ export function addPlusButton(editor) {
         }
     });
 
-    // Make editor container relative positioned if we fall back to absolute placement
-    if (!isFlexPlacement && editorWrapper && getComputedStyle(editorWrapper).position === 'static') {
-        editorWrapper.style.position = 'relative';
-    }
-
     // Insert button into chosen container
     buttonContainer.appendChild(plusBtn);
 
@@ -365,13 +368,21 @@ export function addPlusButton(editor) {
  * @param {HTMLElement} editor 
  */
 export function addRotateButton(editor) {
-    // Find key containers
-    const editorWrapper = editor.closest('.comments-comment-box-comment__text-editor') ||
+    // Find key containers — use stable selectors that work across LinkedIn DOM versions
+    const editorWrapper =
+        editor.closest('.comments-comment-box-comment__text-editor') ||
+        editor.closest('.comments-comment-box__editor') ||
         editor.closest('.ql-container') ||
+        editor.closest('form') ||
         editor.parentElement;
     const flexContainer = editor.closest('.display-flex.flex-wrap');
     const buttonContainer = flexContainer || editorWrapper;
     const isFlexPlacement = Boolean(flexContainer);
+
+    // Ensure the wrapper has relative positioning so absolute buttons render correctly
+    if (editorWrapper && getComputedStyle(editorWrapper).position === 'static') {
+        editorWrapper.style.position = 'relative';
+    }
 
     if (!buttonContainer) return;
 
@@ -494,11 +505,6 @@ export function addRotateButton(editor) {
         }
     });
 
-    // Make editor container relative positioned if we fall back to absolute placement
-    if (!isFlexPlacement && editorWrapper && getComputedStyle(editorWrapper).position === 'static') {
-        editorWrapper.style.position = 'relative';
-    }
-
     // Insert button into chosen container
     buttonContainer.appendChild(rotateBtn);
 
@@ -585,25 +591,44 @@ export function addRotateButton(editor) {
 
 /**
  * Process all editors on the page to add buttons.
+ * Uses stable selectors that work across LinkedIn DOM versions.
  */
 export function processEditors() {
-    const editorsFromButton = []
-    let emojiButtons = document.querySelectorAll('button[data-view-name="comment-emoji-picker"]');
+    // Build a set of editors from the emoji picker button siblings
+    // Use closest() to reliably find the actual contenteditable, not just parentElement
+    const editorsFromButton = [];
+    const emojiButtons = document.querySelectorAll('button[data-view-name="comment-emoji-picker"]');
     emojiButtons.forEach(button => {
-        editorsFromButton.push(button.parentElement)
-    })
+        // Walk up to find the nearest contenteditable editor
+        const editor =
+            button.closest('[contenteditable="true"]') ||
+            button.closest('.comments-comment-box')?.querySelector('[contenteditable="true"]') ||
+            button.parentElement?.querySelector('[contenteditable="true"]');
+        if (editor) editorsFromButton.push(editor);
+    });
 
-    // Find all Quill editors
-    const editors = document.querySelectorAll('.ql-editor') || editorsFromButton;
+    // Primary: use conteneditable="true" — stable across LinkedIn DOM versions.
+    // DO NOT use `.ql-editor` alone — LinkedIn no longer uses Quill everywhere.
+    const quillEditors = Array.from(document.querySelectorAll('.ql-editor'));
+    const contentEditableEditors = Array.from(
+        document.querySelectorAll('div[contenteditable="true"][role="textbox"]')
+    );
 
-    editors.forEach(editor => {
+    // Merge all sources, deduplicate by element reference
+    const allEditors = [
+        ...new Set([...quillEditors, ...contentEditableEditors, ...editorsFromButton])
+    ];
+
+    allEditors.forEach(editor => {
+        if (!editor || !editor.isConnected) return; // skip detached nodes
+
         // Check if we've already processed this editor
         if (editor.dataset.connectzProcessed) return;
 
         // Mark as processed
         editor.dataset.connectzProcessed = 'true';
 
-        // Add + button (pass the editor element directly)
+        // Add + button
         addPlusButton(editor);
 
         // Add rotate button

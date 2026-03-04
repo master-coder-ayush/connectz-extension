@@ -9,8 +9,11 @@
  * @returns {string|null} The extracted post content or null.
  */
 function getVisiblePostContent() {
-    // Select all post containers
-    const posts = document.querySelectorAll('p[data-view-name="feed-commentary"], .feed-shared-update-v2, .update-components-update-v2__commentary');
+    // Use a layered selector strategy — [data-urn] is the most stable LinkedIn identifier,
+    // with class-based fallbacks for older DOM versions.
+    const posts = document.querySelectorAll(
+        '[data-urn], .feed-shared-update-v2, article[role="article"]'
+    );
 
     let closestPost = null;
     let minDistance = Infinity;
@@ -35,17 +38,19 @@ function getVisiblePostContent() {
 
     if (!closestPost) return null;
 
-    // Extract content from the closest post
-    const postTextElement = closestPost.querySelector('.update-components-text') ||
+    // Find the post text element using current LinkedIn class names
+    const postTextElement =
+        closestPost.querySelector('.update-components-text') ||
         closestPost.querySelector('.update-components-update-v2__commentary') ||
-        closestPost.querySelector('.tvm-parent-container') ||
-        closestPost;
+        closestPost.querySelector('.feed-shared-text') ||
+        closestPost.querySelector('.tvm-parent-container');
 
     if (!postTextElement) return null;
 
-    // Extract text from the inner span with dir="ltr"
-    const textSpan = postTextElement.querySelector('span[dir="ltr"]') ||
+    // span.break-words is stable in LinkedIn's current DOM (confirmed from real DOM)
+    const textSpan =
         postTextElement.querySelector('span.break-words') ||
+        postTextElement.querySelector('span[dir="ltr"]') ||
         postTextElement;
 
     if (!textSpan) return null;
@@ -74,7 +79,7 @@ function getVisiblePostContent() {
         .replace(/(#\w+)\n\s*\n(?=#\w+)/g, '$1\n')
         .replace(/([•👉])([^\n]+)\n\s*\n(?=[•👉])/g, '$1$2\n')
         .trim();
-    return text;
+    return text || null;
 }
 
 /**

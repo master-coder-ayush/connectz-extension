@@ -93,75 +93,80 @@ export function restoreCursorPosition(editor) {
  */
 export function extractPostContent(editor) {
     try {
-        // Find the comment box container
-        const editorContainer = editor.closest('.ql-container') ||
-            editor.closest('.comments-comment-box') ||
-            editor.parentElement;
-        if (!editorContainer) return null;
+        // Strategy 1: Walk up from the editor to find the post container via [data-urn]
+        // [data-urn] is stable on LinkedIn across DOM version changes
+        let postContainer =
+            editor.closest('[data-urn]') ||
+            editor.closest('.feed-shared-update-v2') ||
+            editor.closest('article');
 
-        // Find the post container - traverse up the DOM to find the feed update
-        let postContainer = editorContainer.closest('.feed-shared-update-v2');
-
-        // If not found, try alternative selectors
+        // Strategy 2: Find the nearest comment box and look for its parent post
         if (!postContainer) {
-            postContainer = editorContainer.closest('[data-urn]') ||
-                editorContainer.closest('article') ||
-                editorContainer.closest('.feed-shared-update-v2__commentary')?.closest('.feed-shared-update-v2');
+            const commentBox =
+                editor.closest('.comments-comment-box') ||
+                editor.closest('.comments-comment-box__editor') ||
+                editor.parentElement;
+
+            if (commentBox) {
+                postContainer =
+                    commentBox.closest('[data-urn]') ||
+                    commentBox.closest('.feed-shared-update-v2') ||
+                    commentBox.closest('article');
+            }
         }
 
+        // Strategy 3: Last resort — find the nearest .update-components-text above the editor
         if (!postContainer) {
-            // Last resort: look for the nearest update-components-text element
-            const allPosts = document.querySelectorAll('.update-components-text');
+            const allPosts = document.querySelectorAll('[data-urn], .feed-shared-update-v2');
             let closestPost = null;
             let closestDistance = Infinity;
+            const editorRect = editor.getBoundingClientRect();
 
             allPosts.forEach(post => {
                 const rect = post.getBoundingClientRect();
-                const editorRect = editor.getBoundingClientRect();
                 const distance = Math.abs(rect.top - editorRect.top);
-
-                if (distance < closestDistance && rect.top < editorRect.top) {
+                if (distance < closestDistance && rect.top <= editorRect.top) {
                     closestDistance = distance;
                     closestPost = post;
                 }
             });
 
-            if (closestPost) {
-                postContainer = closestPost.closest('.feed-shared-update-v2') || closestPost;
-            }
+            postContainer = closestPost;
         }
 
         if (!postContainer) return null;
 
-        // Find the post text element
-        const postTextElement = postContainer.querySelector('.update-components-text') ||
-            postContainer.querySelector('.update-components-update-v2__commentary');
+        // Find the post text element using current LinkedIn class names
+        const postTextElement =
+            postContainer.querySelector('.update-components-text') ||
+            postContainer.querySelector('.update-components-update-v2__commentary') ||
+            postContainer.querySelector('.feed-shared-text');
 
         if (!postTextElement) return null;
 
-        // Extract text from the inner span with dir="ltr"
-        const textSpan = postTextElement.querySelector('span[dir="ltr"]') ||
+        // Extract text: span.break-words and span[dir="ltr"] are stable in current LinkedIn DOM
+        const textSpan =
             postTextElement.querySelector('span.break-words') ||
+            postTextElement.querySelector('span[dir="ltr"]') ||
             postTextElement;
 
         if (!textSpan) return null;
 
-        // Get text content - replace <br> tags with line breaks
+        // Replace <br> tags with line breaks before stripping HTML
         let text = textSpan.innerHTML || textSpan.innerText || textSpan.textContent;
-
-        // Replace <br> and <br/> tags with line breaks
         text = text.replace(/<br\s*\/?>/gi, '\n\n');
 
-        // Remove HTML tags but keep text
+        // Strip remaining HTML tags
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = text;
         text = tempDiv.textContent || tempDiv.innerText || text;
 
-        // Clean up the text
-        text = text.replace(/\n{3,}/g, '\n\n')  // Replace 3+ line breaks with double
-            .replace(/[ \t]+/g, ' ')       // Replace multiple spaces with single
-            .replace(/\n /g, '\n')          // Remove spaces after line breaks
-            .replace(/ \n/g, '\n')          // Remove spaces before line breaks
+        // Clean up
+        text = text
+            .replace(/\n{3,}/g, '\n\n')
+            .replace(/[ \t]+/g, ' ')
+            .replace(/\n /g, '\n')
+            .replace(/ \n/g, '\n')
             .trim();
 
         return text || null;
