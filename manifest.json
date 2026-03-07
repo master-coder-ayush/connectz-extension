@@ -9,10 +9,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "http://127.0.0.1:3000/*",
-    "https://connectz.site/*",
-    "https://www.linkedin.com/*",
-    "http://16.171.166.83/*"
+    "https://connectz.one/*",
+    "https://www.linkedin.com/*"
   ],
   "content_scripts": [
     {
