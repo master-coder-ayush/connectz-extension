@@ -160,50 +160,39 @@ export function addPlusButton(editor) {
     const plusBtn = document.createElement('button');
     plusBtn.className = 'connectz-plus-btn';
     plusBtn.type = 'button';
-    plusBtn.innerHTML = '+';
+    plusBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
     // Set title based on editor type
     const isPost = isPostComposer(editor);
     plusBtn.title = isPost ? 'Generate post from rough content' : 'Generate comment from post';
 
-    const baseStyles = `
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background-color: #0077b5;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: bold;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    transition: background-color 0.2s;
-  `;
-
-    plusBtn.style.cssText = isFlexPlacement
-        ? `
-      ${baseStyles}
-      position: static;
-      margin: 5px 8px;
-      align-self: flex-start;
-    `
-        : `
-      ${baseStyles}
-      position: absolute;
-      right: 10px;
-      top: 10px;
-      z-index: 1000;
+    plusBtn.style.cssText = `
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+      transition: all 0.2s ease;
+      flex-shrink: 0;
     `;
 
     // Hover effect
     plusBtn.addEventListener('mouseenter', () => {
-        plusBtn.style.backgroundColor = '#005885';
+        plusBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        plusBtn.style.boxShadow = '0 2px 6px rgba(245, 158, 11, 0.45)';
+        plusBtn.style.transform = 'scale(1.08)';
     });
     plusBtn.addEventListener('mouseleave', () => {
-        plusBtn.style.backgroundColor = '#0077b5';
+        plusBtn.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+        plusBtn.style.boxShadow = '0 1px 3px rgba(245, 158, 11, 0.3)';
+        plusBtn.style.transform = 'scale(1)';
     });
 
     // Track if button should stay visible
@@ -222,7 +211,7 @@ export function addPlusButton(editor) {
         e.stopPropagation();
 
         buttonShouldStayVisible = true;
-        const originalLabel = plusBtn.textContent;
+        const originalHTML = plusBtn.innerHTML;
         plusBtn.textContent = '…';
         plusBtn.disabled = true;
 
@@ -245,7 +234,7 @@ export function addPlusButton(editor) {
                     message: 'Please write some rough post content first.',
                     duration: 5000
                 });
-                plusBtn.textContent = originalLabel || '+';
+                plusBtn.innerHTML = originalHTML;
                 plusBtn.disabled = false;
                 buttonShouldStayVisible = false;
                 return;
@@ -259,7 +248,7 @@ export function addPlusButton(editor) {
                     message: 'Unable to extract post content from LinkedIn.',
                     duration: 5000
                 });
-                plusBtn.textContent = originalLabel || '+';
+                plusBtn.innerHTML = originalHTML;
                 plusBtn.disabled = false;
                 buttonShouldStayVisible = false;
                 return;
@@ -268,7 +257,7 @@ export function addPlusButton(editor) {
 
         // Show brief loading indication then restore button
         setTimeout(() => {
-            plusBtn.textContent = originalLabel || '+';
+            plusBtn.innerHTML = originalHTML;
             plusBtn.disabled = false;
             buttonShouldStayVisible = false;
         }, 600);
@@ -376,19 +365,38 @@ export function addPlusButton(editor) {
         }
     });
 
-    // Insert button into chosen container
-    buttonContainer.appendChild(plusBtn);
+    // Insert button into the connectz action wrapper (shared between + and ↻)
+    let actionWrapper = buttonContainer.querySelector('.connectz-action-wrapper');
+    if (!actionWrapper) {
+        actionWrapper = document.createElement('div');
+        actionWrapper.className = 'connectz-action-wrapper';
+        actionWrapper.style.cssText = `
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            ${isFlexPlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
+        `;
+        buttonContainer.appendChild(actionWrapper);
+    }
+    actionWrapper.appendChild(plusBtn);
 
     // Show/hide button based on focus
     function updateButtonVisibility() {
         const isFocused = document.activeElement === editor ||
             editor.contains(document.activeElement);
+        const wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
 
         // Show if editor is focused or button should stay visible
         if (isFocused || buttonShouldStayVisible) {
-            plusBtn.style.display = isFlexPlacement ? 'inline-flex' : 'flex';
+            plusBtn.style.display = 'inline-flex';
+            if (wrapper) wrapper.style.display = 'inline-flex';
         } else {
             plusBtn.style.display = 'none';
+            // Only hide wrapper if no other buttons are visible
+            if (wrapper && !wrapper.querySelector('.connectz-rotate-btn[style*="inline-flex"]')) {
+                wrapper.style.display = 'none';
+            }
         }
     }
 
@@ -419,7 +427,7 @@ export function addPlusButton(editor) {
     // Keep button visible when interacting with it
     plusBtn.addEventListener('mouseenter', () => {
         buttonShouldStayVisible = true;
-        plusBtn.style.display = 'flex';
+        plusBtn.style.display = 'inline-flex';
     });
 
     plusBtn.addEventListener('mouseleave', () => {
@@ -484,49 +492,38 @@ export function addRotateButton(editor) {
     const rotateBtn = document.createElement('button');
     rotateBtn.className = 'connectz-rotate-btn';
     rotateBtn.type = 'button';
-    rotateBtn.innerHTML = '↻';
+    rotateBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.5 5.5A4.5 4.5 0 0 0 3 4m0 0V1.5M3 4h2.5M2.5 8.5A4.5 4.5 0 0 0 11 10m0 0v2.5M11 10H8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
     // Set title 
     rotateBtn.title = 'Rephrase existing comment';
 
-    const baseStyles = `
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background-color: #0077b5;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: bold;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    transition: background-color 0.2s;
-  `;
-
-    rotateBtn.style.cssText = isFlexPlacement
-        ? `
-      ${baseStyles}
-      position: static;
-      margin: 5px 8px;
-      align-self: flex-start;
-    `
-        : `
-      ${baseStyles}
-      position: absolute;
-      right: 50px;
-      top: 10px;
-      z-index: 1000;
+    rotateBtn.style.cssText = `
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+      transition: all 0.2s ease;
+      flex-shrink: 0;
     `;
 
     // Hover effect
     rotateBtn.addEventListener('mouseenter', () => {
-        rotateBtn.style.backgroundColor = '#005885';
+        rotateBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        rotateBtn.style.boxShadow = '0 2px 6px rgba(245, 158, 11, 0.45)';
+        rotateBtn.style.transform = 'scale(1.08)';
     });
     rotateBtn.addEventListener('mouseleave', () => {
-        rotateBtn.style.backgroundColor = '#0077b5';
+        rotateBtn.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+        rotateBtn.style.boxShadow = '0 1px 3px rgba(245, 158, 11, 0.3)';
+        rotateBtn.style.transform = 'scale(1)';
     });
 
     // Track if button should stay visible
@@ -545,7 +542,7 @@ export function addRotateButton(editor) {
         e.stopPropagation();
 
         buttonShouldStayVisible = true;
-        const originalLabel = rotateBtn.textContent;
+        const originalHTML = rotateBtn.innerHTML;
         rotateBtn.textContent = '…';
         rotateBtn.disabled = true;
 
@@ -559,7 +556,7 @@ export function addRotateButton(editor) {
                 message: 'Rephrase is only available for comments.',
                 duration: 5000
             });
-            rotateBtn.textContent = originalLabel || '↻';
+            rotateBtn.innerHTML = originalHTML;
             rotateBtn.disabled = false;
             buttonShouldStayVisible = false;
             return;
@@ -575,7 +572,7 @@ export function addRotateButton(editor) {
                 message: 'Please write a comment first.',
                 duration: 5000
             });
-            rotateBtn.textContent = originalLabel || '↻';
+            rotateBtn.innerHTML = originalHTML;
             rotateBtn.disabled = false;
             buttonShouldStayVisible = false;
             return;
@@ -590,7 +587,7 @@ export function addRotateButton(editor) {
                 message: 'Unable to extract post content from LinkedIn.',
                 duration: 5000
             });
-            rotateBtn.textContent = originalLabel || '↻';
+            rotateBtn.innerHTML = originalHTML;
             rotateBtn.disabled = false;
             buttonShouldStayVisible = false;
             return;
@@ -604,7 +601,7 @@ export function addRotateButton(editor) {
 
         // Restore button quickly
         setTimeout(() => {
-            rotateBtn.textContent = originalLabel || '↻';
+            rotateBtn.innerHTML = originalHTML;
             rotateBtn.disabled = false;
             buttonShouldStayVisible = false;
         }, 600);
@@ -696,18 +693,33 @@ export function addRotateButton(editor) {
         }
     });
 
-    // Insert button into chosen container
-    buttonContainer.appendChild(rotateBtn);
+    // Insert button into the connectz action wrapper (shared between + and ↻)
+    let actionWrapper = buttonContainer.querySelector('.connectz-action-wrapper');
+    if (!actionWrapper) {
+        actionWrapper = document.createElement('div');
+        actionWrapper.className = 'connectz-action-wrapper';
+        actionWrapper.style.cssText = `
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            ${isFlexPlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
+        `;
+        buttonContainer.appendChild(actionWrapper);
+    }
+    actionWrapper.appendChild(rotateBtn);
 
     // Show/hide button based on focus and content
     function updateButtonVisibility() {
         const isFocused = document.activeElement === editor ||
             editor.contains(document.activeElement);
         const hasContent = (editor.textContent || editor.innerText || '').trim() !== '';
+        const wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
 
         // Show if editor is focused, has content, and is not a post composer
         if ((isFocused || buttonShouldStayVisible) && hasContent && !isPostComposer(editor)) {
-            rotateBtn.style.display = isFlexPlacement ? 'inline-flex' : 'flex';
+            rotateBtn.style.display = 'inline-flex';
+            if (wrapper) wrapper.style.display = 'inline-flex';
         } else {
             rotateBtn.style.display = 'none';
         }
@@ -742,7 +754,7 @@ export function addRotateButton(editor) {
     // Keep button visible when interacting with it
     rotateBtn.addEventListener('mouseenter', () => {
         buttonShouldStayVisible = true;
-        rotateBtn.style.display = 'flex';
+        rotateBtn.style.display = 'inline-flex';
     });
 
     rotateBtn.addEventListener('mouseleave', () => {
