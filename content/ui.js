@@ -828,6 +828,16 @@ export function processEditors() {
         // Check if we've already processed this editor
         if (editor.dataset.connectzProcessed) return;
 
+        // Skip chat/messaging boxes
+        if (
+            editor.classList.contains('msg-form__contenteditable') ||
+            editor.closest('.msg-form__msg-content-container') ||
+            editor.closest('.msg-overlay-conversation-bubble') ||
+            editor.closest('.msg-form')
+        ) {
+            return;
+        }
+
         // Mark as processed
         editor.dataset.connectzProcessed = 'true';
 
