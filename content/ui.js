@@ -138,19 +138,27 @@ function requestGeneratedPost(roughPostContent) {
  * @param {HTMLElement} editor 
  */
 export function addPlusButton(editor) {
-    // Find key containers — use stable selectors that work across LinkedIn DOM versions
+    // Try to find the tools container for the most native integration
+    const commentBox = editor.closest('.comments-comment-box') || editor.closest('.comments-comment-texteditor');
+    let toolsContainer = null;
+    if (commentBox) {
+        // Find the left-side tool group where Emoji/Image buttons live
+        toolsContainer = commentBox.querySelector('.display-flex.justify-space-between > .display-flex') ||
+            commentBox.querySelector('.comments-comment-box__detour-container')?.parentElement;
+    }
+
     const editorWrapper =
         editor.closest('.comments-comment-box-comment__text-editor') ||
         editor.closest('.comments-comment-box__editor') ||
         editor.closest('.ql-container') ||
         editor.closest('form') ||
         editor.parentElement;
-    const flexContainer = editor.closest('.display-flex.flex-wrap');
-    const buttonContainer = flexContainer || editorWrapper;
-    const isFlexPlacement = Boolean(flexContainer);
+
+    const buttonContainer = toolsContainer || editorWrapper;
+    const isNativePlacement = Boolean(toolsContainer);
 
     // Ensure the wrapper has relative positioning so absolute buttons render correctly
-    if (editorWrapper && getComputedStyle(editorWrapper).position === 'static') {
+    if (editorWrapper && !isNativePlacement && getComputedStyle(editorWrapper).position === 'static') {
         editorWrapper.style.position = 'relative';
     }
 
@@ -365,6 +373,10 @@ export function addPlusButton(editor) {
         }
     });
 
+    // Remove old button if it exists to prevent duplicates on soft-navigation React recycles
+    const oldPlusBtn = buttonContainer.querySelector('.connectz-plus-btn');
+    if (oldPlusBtn) oldPlusBtn.remove();
+
     // Insert button into the connectz action wrapper (shared between + and ↻)
     let actionWrapper = buttonContainer.querySelector('.connectz-action-wrapper');
     if (!actionWrapper) {
@@ -375,7 +387,8 @@ export function addPlusButton(editor) {
             align-items: center;
             gap: 6px;
             padding: 4px 0;
-            ${isFlexPlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
+            margin-left: 8px;
+            ${isNativePlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
         `;
         buttonContainer.appendChild(actionWrapper);
     }
@@ -470,19 +483,27 @@ export function addPlusButton(editor) {
  * @param {HTMLElement} editor 
  */
 export function addRotateButton(editor) {
-    // Find key containers — use stable selectors that work across LinkedIn DOM versions
+    // Try to find the tools container for the most native integration
+    const commentBox = editor.closest('.comments-comment-box') || editor.closest('.comments-comment-texteditor');
+    let toolsContainer = null;
+    if (commentBox) {
+        // Find the left-side tool group where Emoji/Image buttons live
+        toolsContainer = commentBox.querySelector('.display-flex.justify-space-between > .display-flex') ||
+            commentBox.querySelector('.comments-comment-box__detour-container')?.parentElement;
+    }
+
     const editorWrapper =
         editor.closest('.comments-comment-box-comment__text-editor') ||
         editor.closest('.comments-comment-box__editor') ||
         editor.closest('.ql-container') ||
         editor.closest('form') ||
         editor.parentElement;
-    const flexContainer = editor.closest('.display-flex.flex-wrap');
-    const buttonContainer = flexContainer || editorWrapper;
-    const isFlexPlacement = Boolean(flexContainer);
+
+    const buttonContainer = toolsContainer || editorWrapper;
+    const isNativePlacement = Boolean(toolsContainer);
 
     // Ensure the wrapper has relative positioning so absolute buttons render correctly
-    if (editorWrapper && getComputedStyle(editorWrapper).position === 'static') {
+    if (editorWrapper && !isNativePlacement && getComputedStyle(editorWrapper).position === 'static') {
         editorWrapper.style.position = 'relative';
     }
 
@@ -693,6 +714,10 @@ export function addRotateButton(editor) {
         }
     });
 
+    // Remove old button if it exists to prevent duplicates on soft-navigation React recycles
+    const oldRotateBtn = buttonContainer.querySelector('.connectz-rotate-btn');
+    if (oldRotateBtn) oldRotateBtn.remove();
+
     // Insert button into the connectz action wrapper (shared between + and ↻)
     let actionWrapper = buttonContainer.querySelector('.connectz-action-wrapper');
     if (!actionWrapper) {
@@ -703,7 +728,8 @@ export function addRotateButton(editor) {
             align-items: center;
             gap: 6px;
             padding: 4px 0;
-            ${isFlexPlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
+            margin-left: 8px;
+            ${isNativePlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
         `;
         buttonContainer.appendChild(actionWrapper);
     }
@@ -800,7 +826,11 @@ export function processEditors() {
     // Build a set of editors from the emoji picker button siblings
     // Use closest() to reliably find the actual contenteditable, not just parentElement
     const editorsFromButton = [];
-    const emojiButtons = document.querySelectorAll('button[data-view-name="comment-emoji-picker"]');
+    const emojiButtons = document.querySelectorAll(
+        'button[data-view-name="comment-emoji-picker"], ' +
+        'button.comments-comment-box__emoji-picker-trigger, ' +
+        '.emoji-hoverable-trigger'
+    );
     emojiButtons.forEach(button => {
         // Walk up to find the nearest contenteditable editor
         const editor =

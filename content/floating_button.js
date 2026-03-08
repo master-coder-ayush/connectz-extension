@@ -12,7 +12,7 @@ function getVisiblePostContent() {
     // Use a layered selector strategy — [data-urn] is the most stable LinkedIn identifier,
     // with class-based fallbacks for older DOM versions.
     const posts = document.querySelectorAll(
-        '[data-urn], .feed-shared-update-v2, article[role="article"]'
+        '[data-urn], .feed-shared-update-v2, article[role="article"], .feed-shared-update-v2__control-menu-container, .fie-impression-container'
     );
 
     let closestPost = null;

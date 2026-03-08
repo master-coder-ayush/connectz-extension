@@ -12,7 +12,7 @@ import {
 checkLogin();
 
 // Set up alarm to check login status every 10 seconds (0.166 minutes)
-chrome.alarms.create("checkLogin", { periodInMinutes: 0.166 });
+chrome.alarms.create("checkLogin", { periodInMinutes: 1 });
 
 // Listen for alarm events
 chrome.alarms.onAlarm.addListener((alarm) => {
