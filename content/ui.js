@@ -739,7 +739,9 @@ export function addRotateButton(editor) {
     function updateButtonVisibility() {
         const isFocused = document.activeElement === editor ||
             editor.contains(document.activeElement);
-        const hasContent = (editor.textContent || editor.innerText || '').trim() !== '';
+        // Rich text editors commonly leave zero-width spaces (\u200B, \uFEFF) even when visually empty.
+        const cleanText = (editor.textContent || editor.innerText || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        const hasContent = cleanText !== '';
         const wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
 
         // Show if editor is focused, has content, and is not a post composer
@@ -748,6 +750,10 @@ export function addRotateButton(editor) {
             if (wrapper) wrapper.style.display = 'inline-flex';
         } else {
             rotateBtn.style.display = 'none';
+            // Also softly hide the wrapper if the plusBtn isn't actively displayed. 
+            if (wrapper && !wrapper.querySelector('.connectz-plus-btn[style*="inline-flex"]')) {
+                wrapper.style.display = 'none';
+            }
         }
     }
 
@@ -770,6 +776,7 @@ export function addRotateButton(editor) {
     });
 
     editor.addEventListener('input', updateButtonVisibility);
+    editor.addEventListener('keyup', updateButtonVisibility); // Catch backspace/delete events that sometimes bypass input
 
     editor.addEventListener('click', () => {
         saveCursorPosition(editor);
