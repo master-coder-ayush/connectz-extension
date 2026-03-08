@@ -394,86 +394,31 @@ export function addPlusButton(editor) {
     }
     actionWrapper.appendChild(plusBtn);
 
-    // Show/hide button based on focus
-    function updateButtonVisibility() {
-        const isFocused = document.activeElement === editor ||
-            editor.contains(document.activeElement);
-        const wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
+    // The + button should always be visible by default
+    plusBtn.style.display = 'inline-flex';
+    let wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
+    if (wrapper) wrapper.style.display = 'inline-flex';
 
-        // Show if editor is focused or button should stay visible
-        if (isFocused || buttonShouldStayVisible) {
-            plusBtn.style.display = 'inline-flex';
-            if (wrapper) wrapper.style.display = 'inline-flex';
-        } else {
-            plusBtn.style.display = 'none';
-            // Only hide wrapper if no other buttons are visible
-            if (wrapper && !wrapper.querySelector('.connectz-rotate-btn[style*="inline-flex"]')) {
-                wrapper.style.display = 'none';
-            }
-        }
-    }
-
-    // Listen for focus events
-    editor.addEventListener('focus', () => {
-        saveCursorPosition(editor);
-        buttonShouldStayVisible = false;
-        updateButtonVisibility();
+    // Give it a click listener to refocus the editor after clicking
+    plusBtn.addEventListener('mouseup', () => {
+        setTimeout(() => {
+            editor.focus();
+        }, 100);
     });
 
-    editor.addEventListener('blur', (e) => {
-        // Don't hide immediately - allow time for button click
-        setTimeout(() => {
-            if (document.activeElement !== plusBtn &&
-                document.activeElement !== editor &&
-                !buttonShouldStayVisible) {
-                updateButtonVisibility();
-            }
-        }, 200);
+    // Track cursor position when the editor is interacted with
+    editor.addEventListener('focus', () => {
+        saveCursorPosition(editor);
     });
 
     editor.addEventListener('click', () => {
         saveCursorPosition(editor);
-        buttonShouldStayVisible = false;
-        updateButtonVisibility();
     });
 
-    // Keep button visible when interacting with it
-    plusBtn.addEventListener('mouseenter', () => {
-        buttonShouldStayVisible = true;
-        plusBtn.style.display = 'inline-flex';
-    });
-
-    plusBtn.addEventListener('mouseleave', () => {
-        buttonShouldStayVisible = false;
-        // Only hide if editor is not focused
-        if (document.activeElement !== editor &&
-            !editor.contains(document.activeElement)) {
-            updateButtonVisibility();
-        }
-    });
-
-    // Keep visible during click
-    plusBtn.addEventListener('mousedown', () => {
-        buttonShouldStayVisible = true;
-    });
-
-    plusBtn.addEventListener('mouseup', () => {
-        // After click, refocus editor to keep button visible
-        setTimeout(() => {
-            editor.focus();
-            buttonShouldStayVisible = false;
-        }, 100);
-    });
-
-    // Initial check
-    updateButtonVisibility();
-
-    // Also check on any focus change
+    // Also track on generic focus changes within the editor
     document.addEventListener('focusin', (e) => {
         if (e.target === editor || editor.contains(e.target)) {
             saveCursorPosition(editor);
-            buttonShouldStayVisible = false;
-            updateButtonVisibility();
         }
     });
 }
@@ -735,17 +680,15 @@ export function addRotateButton(editor) {
     }
     actionWrapper.appendChild(rotateBtn);
 
-    // Show/hide button based on focus and content
+    // Show/hide button based on content
     function updateButtonVisibility() {
-        const isFocused = document.activeElement === editor ||
-            editor.contains(document.activeElement);
         // Rich text editors commonly leave zero-width spaces (\u200B, \uFEFF) even when visually empty.
         const cleanText = (editor.textContent || editor.innerText || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
         const hasContent = cleanText !== '';
         const wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
 
-        // Show if editor is focused, has content, and is not a post composer
-        if ((isFocused || buttonShouldStayVisible) && hasContent && !isPostComposer(editor)) {
+        // Show if editor has content, and is not a post composer
+        if (hasContent && !isPostComposer(editor)) {
             rotateBtn.style.display = 'inline-flex';
             if (wrapper) wrapper.style.display = 'inline-flex';
         } else {
@@ -757,72 +700,37 @@ export function addRotateButton(editor) {
         }
     }
 
-    // Listen for focus and input events
-    editor.addEventListener('focus', () => {
-        saveCursorPosition(editor);
-        buttonShouldStayVisible = false;
-        updateButtonVisibility();
-    });
-
-    editor.addEventListener('blur', (e) => {
-        // Don't hide immediately - allow time for button click
+    // Give it a click listener to refocus the editor after clicking
+    rotateBtn.addEventListener('mouseup', () => {
         setTimeout(() => {
-            if (document.activeElement !== rotateBtn &&
-                document.activeElement !== editor &&
-                !buttonShouldStayVisible) {
-                updateButtonVisibility();
-            }
-        }, 200);
+            editor.focus();
+        }, 100);
     });
 
+    // Update visibility on text changes
     editor.addEventListener('input', updateButtonVisibility);
     editor.addEventListener('keyup', updateButtonVisibility); // Catch backspace/delete events that sometimes bypass input
 
-    editor.addEventListener('click', () => {
+    // Track cursor position when the editor is interacted with
+    editor.addEventListener('focus', () => {
         saveCursorPosition(editor);
-        buttonShouldStayVisible = false;
         updateButtonVisibility();
     });
 
-    // Keep button visible when interacting with it
-    rotateBtn.addEventListener('mouseenter', () => {
-        buttonShouldStayVisible = true;
-        rotateBtn.style.display = 'inline-flex';
+    editor.addEventListener('click', () => {
+        saveCursorPosition(editor);
+        updateButtonVisibility();
     });
 
-    rotateBtn.addEventListener('mouseleave', () => {
-        buttonShouldStayVisible = false;
-        // Only hide if editor is not focused
-        if (document.activeElement !== editor &&
-            !editor.contains(document.activeElement)) {
-            updateButtonVisibility();
+    // Also track on generic focus changes within the editor
+    document.addEventListener('focusin', (e) => {
+        if (e.target === editor || editor.contains(e.target)) {
+            saveCursorPosition(editor);
         }
-    });
-
-    // Keep visible during click
-    rotateBtn.addEventListener('mousedown', () => {
-        buttonShouldStayVisible = true;
-    });
-
-    rotateBtn.addEventListener('mouseup', () => {
-        // After click, refocus editor to keep button visible
-        setTimeout(() => {
-            editor.focus();
-            buttonShouldStayVisible = false;
-        }, 100);
     });
 
     // Initial check
     updateButtonVisibility();
-
-    // Also check on any focus change
-    document.addEventListener('focusin', (e) => {
-        if (e.target === editor || editor.contains(e.target)) {
-            saveCursorPosition(editor);
-            buttonShouldStayVisible = false;
-            updateButtonVisibility();
-        }
-    });
 }
 
 /**
