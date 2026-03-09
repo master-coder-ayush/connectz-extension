@@ -244,8 +244,8 @@ function showContentSidebar(content) {
         <button id="connectz-gen-comment-btn" style="
             width: 100%;
             padding: 8px 16px;
-            background-color: #FFD700;
-            color: white;
+            background-color: #1a1a2e;
+            color: #FFD700;
             border: none;
             border-radius: 20px;
             font-weight: 600;
@@ -296,8 +296,8 @@ function showContentSidebar(content) {
         <button id="connectz-gen-post-btn" style="
             width: 100%;
             padding: 8px 16px;
-            background-color: #FFD700;
-            color: white;
+            background-color: #1a1a2e;
+            color: #FFD700;
             border: none;
             border-radius: 20px;
             font-weight: 600;
