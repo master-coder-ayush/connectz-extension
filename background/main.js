@@ -8,6 +8,14 @@ import {
     getBadgesStats
 } from './api.js';
 
+chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") {
+        setTimeout(() => {
+            chrome.tabs.create({ url: "https://connectz.one/welcome" });
+        }, 1200);
+    }
+});
+
 // Check login status immediately when extension starts
 checkLogin();
 
