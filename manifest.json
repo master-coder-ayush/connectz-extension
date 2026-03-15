@@ -20,7 +20,8 @@
       "js": [
         "content-loader.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
@@ -51,3 +52,4 @@
     "default_title": "Connect Z - Check Login"
   }
 }
+

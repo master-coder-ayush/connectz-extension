@@ -692,11 +692,21 @@ async function loadSidebarAnalytics(container) {
     }
 }
 
+// Only show the floating button if we detect we're likely in a feed context (where posts are present) - This is added because linkedin sometimes opens the feed page inside iframes. We don't want to show the button twice (in the iframe and the parent)
+function isLikelyFeedContext() {
+    return Boolean(
+        document.querySelector(
+            '[data-urn], .feed-shared-update-v2, article[role="article"], div[role="article"], div[contenteditable="true"][role="textbox"], [contenteditable="true"]'
+        )
+    );
+}
 
 /**
  * Initialize the floating button.
  */
 export function initFloatingButton() {
+    if (!isLikelyFeedContext()) return;
+
     // Check if button already exists
     if (document.getElementById('connectz-floating-btn')) return;
 

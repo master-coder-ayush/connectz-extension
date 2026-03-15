@@ -3,12 +3,7 @@ import { processEditors } from './ui.js';
 import { initFloatingButton } from './floating_button.js';
 import { injectToastStyles } from './toast.js';
 
-// Initial processing
-processEditors();
-initFloatingButton();
-injectToastStyles();
-
-// Set up observer to handle dynamic content loading (e.g. new comments appearing)
+let observedBody = null;
 const observer = new MutationObserver((mutations) => {
     let shouldProcess = false;
 
@@ -20,22 +15,68 @@ const observer = new MutationObserver((mutations) => {
     }
 
     if (shouldProcess) {
-        processEditors();
+        safeProcessEditors();
     }
 });
 
-// Start observing
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+function ensureObserver() {
+    if (!document.body) return;
+    if (observedBody === document.body) return;
+    try {
+        observer.disconnect();
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        observedBody = document.body;
+    } catch (error) {
+        console.warn('Connect Z observer attach failed:', error);
+    }
+}
+
+function safeProcessEditors() {
+    try {
+        processEditors();
+    } catch (error) {
+        console.error('Connect Z processEditors error:', error);
+    }
+}
+
+function bootstrap(reason = 'init') {
+    try {
+        injectToastStyles();
+    } catch (error) {
+        console.warn('Connect Z toast style inject failed:', error);
+    }
+
+    try {
+        initFloatingButton();
+    } catch (error) {
+        console.warn('Connect Z floating button init failed:', error);
+    }
+
+    ensureObserver();
+    safeProcessEditors();
+}
+
+// Initial processing
+bootstrap('initial');
 
 // Also check periodically just in case
-setInterval(processEditors, 2000);
+setInterval(() => {
+    ensureObserver();
+    if (!document.getElementById('connectz-floating-btn')) {
+        initFloatingButton();
+    }
+    if (!document.getElementById('connectz-toast-styles')) {
+        injectToastStyles();
+    }
+    safeProcessEditors();
+}, 2000);
 
 /**
  * Handle LinkedIn's soft navigations (pushState / popstate).
- * LinkedIn is a SPA — clicking "New posts" or navigating between pages
+ * LinkedIn is a SPA � clicking "New posts" or navigating between pages
  * does NOT trigger a full page reload. We re-initialize on each navigation.
  */
 function onSoftNavigation() {
@@ -45,7 +86,7 @@ function onSoftNavigation() {
         document.querySelectorAll('[data-connectz-processed]').forEach(el => {
             delete el.dataset.connectzProcessed;
         });
-        processEditors();
+        bootstrap('soft-navigation');
     }, 500);
 }
 
@@ -56,6 +97,28 @@ history.pushState = function (...args) {
     onSoftNavigation();
 };
 
+// Patch history.replaceState too (LinkedIn uses it in some flows)
+const _originalReplaceState = history.replaceState.bind(history);
+history.replaceState = function (...args) {
+    _originalReplaceState(...args);
+    onSoftNavigation();
+};
+
 // Also handle browser back/forward
 window.addEventListener('popstate', onSoftNavigation);
 
+// Fallback: watch URL changes that do not trigger push/replace/pop
+let lastUrl = location.href;
+setInterval(() => {
+    if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        onSoftNavigation();
+    }
+}, 800);
+
+// If the tab was backgrounded, re-bootstrap when visible again
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        bootstrap('visibility');
+    }
+});
