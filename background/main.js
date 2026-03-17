@@ -11,7 +11,7 @@ import {
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
         setTimeout(() => {
-            chrome.tabs.create({ url: "https://connectz.one/welcome" });
+            chrome.tabs.create({ url: "https://www.linkedin.com" });
         }, 1200);
     }
 });
