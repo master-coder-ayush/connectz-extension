@@ -9,49 +9,48 @@
  * @returns {string|null} The extracted post content or null.
  */
 function getVisiblePostContent() {
-    // Use a layered selector strategy — [data-urn] is the most stable LinkedIn identifier,
-    // with class-based fallbacks for older DOM versions.
-    const posts = document.querySelectorAll(
-        '[data-urn], .feed-shared-update-v2, article[role="article"], .feed-shared-update-v2__control-menu-container, .fie-impression-container'
-    );
+    // Use a visual heuristic instead of strict structural matching.
+    const textNodes = Array.from(document.querySelectorAll(
+        '.update-components-text, ' +
+        '.update-components-update-v2__commentary, ' +
+        '.feed-shared-text, ' +
+        '[data-testid="expandable-text-box"]'
+    ));
 
-    let closestPost = null;
+    let closestNode = null;
     let minDistance = Infinity;
 
-    posts.forEach(post => {
-        const rect = post.getBoundingClientRect();
+    const viewportCenter = window.innerHeight / 2;
 
+    textNodes.forEach(node => {
+        const rect = node.getBoundingClientRect();
+        
+        // Ensure the node is visible in the viewport
         const isVisible = (
             rect.top < window.innerHeight &&
-            rect.bottom > 0
+            rect.bottom > 0 &&
+            rect.height > 0
         );
 
         if (isVisible) {
-            const distance = Math.abs(rect.top);
+            // Distance from the vertical center of the screen to the center of the text block
+            const nodeCenter = rect.top + (rect.height / 2);
+            const distance = Math.abs(viewportCenter - nodeCenter);
 
             if (distance < minDistance) {
                 minDistance = distance;
-                closestPost = post;
+                closestNode = node;
             }
         }
     });
 
-    if (!closestPost) return null;
-
-    // Find the post text element using current LinkedIn class names
-    const postTextElement =
-        closestPost.querySelector('.update-components-text') ||
-        closestPost.querySelector('.update-components-update-v2__commentary') ||
-        closestPost.querySelector('.feed-shared-text') ||
-        closestPost.querySelector('.tvm-parent-container');
-
-    if (!postTextElement) return null;
+    if (!closestNode) return null;
 
     // span.break-words is stable in LinkedIn's current DOM (confirmed from real DOM)
     const textSpan =
-        postTextElement.querySelector('span.break-words') ||
-        postTextElement.querySelector('span[dir="ltr"]') ||
-        postTextElement;
+        closestNode.querySelector('span.break-words') ||
+        closestNode.querySelector('span[dir="ltr"]') ||
+        closestNode;
 
     if (!textSpan) return null;
 
@@ -696,7 +695,7 @@ async function loadSidebarAnalytics(container) {
 function isLikelyFeedContext() {
     return Boolean(
         document.querySelector(
-            '[data-urn], .feed-shared-update-v2, article[role="article"], div[role="article"], div[contenteditable="true"][role="textbox"], [contenteditable="true"]'
+            '[data-urn], .feed-shared-update-v2, div[role="listitem"], article[role="article"], div[role="article"], div[contenteditable="true"][role="textbox"], [contenteditable="true"]'
         )
     );
 }

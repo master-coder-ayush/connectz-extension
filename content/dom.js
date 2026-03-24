@@ -24,7 +24,9 @@ export function isPostComposer(editor) {
         editor.closest('.editor-container');
 
     // Also check if it's NOT in a comment container
-    const isInComment = editor.closest('.comments-comment-box') ||
+    const isInComment = editor.closest('[componentkey^="commentBox-"]') ||
+        editor.closest('[data-testid*="-text-editor-wrapper"]') ||
+        editor.closest('.comments-comment-box') ||
         editor.closest('.comments-comment-box-comment__text-editor') ||
         editor.closest('.comments-comment-box__text-editor');
 
@@ -93,67 +95,82 @@ export function restoreCursorPosition(editor) {
  */
 export function extractPostContent(editor) {
     try {
-        // Strategy 1: Walk up from the editor to find the post container via [data-urn]
-        // [data-urn] is stable on LinkedIn across DOM version changes
-        let postContainer =
-            editor.closest('[data-urn]') ||
-            editor.closest('.feed-shared-update-v2') ||
-            editor.closest('article');
+        // Strategy: Geometric lookup for the closest post or comment text above the editor.
+        // This is the most resilient across dynamic DOM structure changes like minified classes.
+        
+        let textNodes = Array.from(document.querySelectorAll(
+            '.update-components-text, ' +
+            '.update-components-update-v2__commentary, ' +
+            '.feed-shared-text, ' +
+            '[data-testid="expandable-text-box"]'
+        ));
+        
+        // Filter only those visible and geometrically above the editor
+        const editorRect = editor.getBoundingClientRect();
+        
+        let closestTextNode = null;
+        let closestDistance = Infinity;
+        
+        textNodes.forEach(node => {
+            const rect = node.getBoundingClientRect();
+            // Ensure the node is visible and its bottom is above the editor's top
+            if (rect.height > 0 && rect.bottom <= editorRect.bottom) {
+                // If the text is partially aligned or strictly above, calculate distance
+                let distance = editorRect.top - rect.bottom;
+                // If distance is negative (meaning overlapping), we consider it 0
+                if (distance < 0) distance = 0;
+                
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestTextNode = node;
+                }
+            }
+        });
+        
+        // Fallback Strategy: Hierarchical lookup if geometric fails or returns nothing
+        if (!closestTextNode) {
+            let postContainer =
+                editor.closest('div[role="listitem"]') ||
+                editor.closest('[data-urn]') ||
+                editor.closest('.feed-shared-update-v2') ||
+                editor.closest('article');
 
-        // Strategy 2: Find the nearest comment box and look for its parent post
-        if (!postContainer) {
-            const commentBox =
-                editor.closest('.comments-comment-box') ||
-                editor.closest('.comments-comment-box__editor') ||
-                editor.parentElement;
+            if (!postContainer) {
+                const commentBox =
+                    editor.closest('[componentkey^="commentBox-"]') ||
+                    editor.closest('.comments-comment-box') ||
+                    editor.closest('.comments-comment-box__editor') ||
+                    editor.parentElement;
 
-            if (commentBox) {
-                postContainer =
-                    commentBox.closest('[data-urn]') ||
-                    commentBox.closest('.feed-shared-update-v2') ||
-                    commentBox.closest('article');
+                if (commentBox) {
+                    postContainer =
+                        commentBox.closest('div[role="listitem"]') ||
+                        commentBox.closest('[data-urn]') ||
+                        commentBox.closest('.feed-shared-update-v2') ||
+                        commentBox.closest('article');
+                }
+            }
+
+            if (postContainer) {
+                closestTextNode =
+                    postContainer.querySelector('[data-testid="expandable-text-box"]') ||
+                    postContainer.querySelector('.update-components-text') ||
+                    postContainer.querySelector('.update-components-update-v2__commentary') ||
+                    postContainer.querySelector('.feed-shared-text');
             }
         }
 
-        // Strategy 3: Last resort — find the nearest .update-components-text above the editor
-        if (!postContainer) {
-            const allPosts = document.querySelectorAll('[data-urn], .feed-shared-update-v2');
-            let closestPost = null;
-            let closestDistance = Infinity;
-            const editorRect = editor.getBoundingClientRect();
-
-            allPosts.forEach(post => {
-                const rect = post.getBoundingClientRect();
-                const distance = Math.abs(rect.top - editorRect.top);
-                if (distance < closestDistance && rect.top <= editorRect.top) {
-                    closestDistance = distance;
-                    closestPost = post;
-                }
-            });
-
-            postContainer = closestPost;
-        }
-
-        if (!postContainer) return null;
-
-        // Find the post text element using current LinkedIn class names
-        const postTextElement =
-            postContainer.querySelector('.update-components-text') ||
-            postContainer.querySelector('.update-components-update-v2__commentary') ||
-            postContainer.querySelector('.feed-shared-text');
-
-        if (!postTextElement) return null;
+        if (!closestTextNode) return null;
 
         // Extract text: span.break-words and span[dir="ltr"] are stable in current LinkedIn DOM
         const textSpan =
-            postTextElement.querySelector('span.break-words') ||
-            postTextElement.querySelector('span[dir="ltr"]') ||
-            postTextElement;
-
-        if (!textSpan) return null;
+            closestTextNode.querySelector('span.break-words') ||
+            closestTextNode.querySelector('span[dir="ltr"]') ||
+            closestTextNode;
 
         // Replace <br> tags with line breaks before stripping HTML
         let text = textSpan.innerHTML || textSpan.innerText || textSpan.textContent;
+        // Retain semantic br tags as newlines
         text = text.replace(/<br\s*\/?>/gi, '\n\n');
 
         // Strip remaining HTML tags
@@ -161,7 +178,7 @@ export function extractPostContent(editor) {
         tempDiv.innerHTML = text;
         text = tempDiv.textContent || tempDiv.innerText || text;
 
-        // Clean up
+        // Clean up formatting
         text = text
             .replace(/\n{3,}/g, '\n\n')
             .replace(/[ \t]+/g, ' ')

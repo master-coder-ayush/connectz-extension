@@ -1,7 +1,7 @@
 {
   "name": "Connect Z",
   "description": "Connect Z is a tool that helps you to utilize the power of linkedin.",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "manifest_version": 3,
   "permissions": [
     "storage",
@@ -52,4 +52,3 @@
     "default_title": "Connect Z - Check Login"
   }
 }
-

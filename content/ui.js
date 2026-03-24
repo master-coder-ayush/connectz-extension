@@ -138,31 +138,13 @@ function requestGeneratedPost(roughPostContent) {
  * @param {HTMLElement} editor 
  */
 export function addPlusButton(editor) {
-    // Try to find the tools container for the most native integration
-    const commentBox = editor.closest('.comments-comment-box') || editor.closest('.comments-comment-texteditor');
-    let toolsContainer = null;
-    if (commentBox) {
-        // Find the left-side tool group where Emoji/Image buttons live
-        toolsContainer = commentBox.querySelector('.display-flex.justify-space-between > .display-flex') ||
-            commentBox.querySelector('.comments-comment-box__detour-container')?.parentElement;
+    if (editor.dataset.connectzPlusInit) return;
+    editor.dataset.connectzPlusInit = 'true';
+
+    if (!editor._connectzActionWrapper) {
+        editor._connectzActionWrapper = document.createElement('div');
+        editor._connectzActionWrapper.className = 'connectz-action-wrapper';
     }
-
-    const editorWrapper =
-        editor.closest('.comments-comment-box-comment__text-editor') ||
-        editor.closest('.comments-comment-box__editor') ||
-        editor.closest('.ql-container') ||
-        editor.closest('form') ||
-        editor.parentElement;
-
-    const buttonContainer = toolsContainer || editorWrapper;
-    const isNativePlacement = Boolean(toolsContainer);
-
-    // Ensure the wrapper has relative positioning so absolute buttons render correctly
-    if (editorWrapper && !isNativePlacement && getComputedStyle(editorWrapper).position === 'static') {
-        editorWrapper.style.position = 'relative';
-    }
-
-    if (!buttonContainer) return;
 
     // Create + button (one per editor)
     const plusBtn = document.createElement('button');
@@ -227,9 +209,11 @@ export function addPlusButton(editor) {
         const isPost = isPostComposer(editor);
 
         // Capture references NOW before the user scrolls away
-        const postContainer = editor.closest('[data-urn]') ||
+        const postContainer = editor.closest('div[role="listitem"]') ||
+            editor.closest('[data-urn]') ||
             editor.closest('.feed-shared-update-v2') ||
-            editor.closest('article');
+            editor.closest('article') ||
+            editor.closest('[componentkey^="commentBox-"]');
         const editorRef = editor;
 
         // Quick validation
@@ -373,31 +357,12 @@ export function addPlusButton(editor) {
         }
     });
 
-    // Remove old button if it exists to prevent duplicates on soft-navigation React recycles
-    const oldPlusBtn = buttonContainer.querySelector('.connectz-plus-btn');
-    if (oldPlusBtn) oldPlusBtn.remove();
-
-    // Insert button into the connectz action wrapper (shared between + and ↻)
-    let actionWrapper = buttonContainer.querySelector('.connectz-action-wrapper');
-    if (!actionWrapper) {
-        actionWrapper = document.createElement('div');
-        actionWrapper.className = 'connectz-action-wrapper';
-        actionWrapper.style.cssText = `
-            display: none;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 0;
-            margin-left: 8px;
-            ${isNativePlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
-        `;
-        buttonContainer.appendChild(actionWrapper);
-    }
-    actionWrapper.appendChild(plusBtn);
+    // Insert button into the connectz action wrapper
+    editor._connectzActionWrapper.appendChild(plusBtn);
 
     // The + button should always be visible by default
     plusBtn.style.display = 'inline-flex';
-    let wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
-    if (wrapper) wrapper.style.display = 'inline-flex';
+    editor._connectzActionWrapper.style.display = 'inline-flex';
 
     // Give it a click listener to refocus the editor after clicking
     plusBtn.addEventListener('mouseup', () => {
@@ -428,31 +393,13 @@ export function addPlusButton(editor) {
  * @param {HTMLElement} editor 
  */
 export function addRotateButton(editor) {
-    // Try to find the tools container for the most native integration
-    const commentBox = editor.closest('.comments-comment-box') || editor.closest('.comments-comment-texteditor');
-    let toolsContainer = null;
-    if (commentBox) {
-        // Find the left-side tool group where Emoji/Image buttons live
-        toolsContainer = commentBox.querySelector('.display-flex.justify-space-between > .display-flex') ||
-            commentBox.querySelector('.comments-comment-box__detour-container')?.parentElement;
+    if (editor.dataset.connectzRotateInit) return;
+    editor.dataset.connectzRotateInit = 'true';
+
+    if (!editor._connectzActionWrapper) {
+        editor._connectzActionWrapper = document.createElement('div');
+        editor._connectzActionWrapper.className = 'connectz-action-wrapper';
     }
-
-    const editorWrapper =
-        editor.closest('.comments-comment-box-comment__text-editor') ||
-        editor.closest('.comments-comment-box__editor') ||
-        editor.closest('.ql-container') ||
-        editor.closest('form') ||
-        editor.parentElement;
-
-    const buttonContainer = toolsContainer || editorWrapper;
-    const isNativePlacement = Boolean(toolsContainer);
-
-    // Ensure the wrapper has relative positioning so absolute buttons render correctly
-    if (editorWrapper && !isNativePlacement && getComputedStyle(editorWrapper).position === 'static') {
-        editorWrapper.style.position = 'relative';
-    }
-
-    if (!buttonContainer) return;
 
     // Create rotate button (one per editor)
     const rotateBtn = document.createElement('button');
@@ -560,9 +507,11 @@ export function addRotateButton(editor) {
         }
 
         // Capture references NOW before user scrolls
-        const postContainer = editor.closest('[data-urn]') ||
+        const postContainer = editor.closest('div[role="listitem"]') ||
+            editor.closest('[data-urn]') ||
             editor.closest('.feed-shared-update-v2') ||
-            editor.closest('article');
+            editor.closest('article') ||
+            editor.closest('[componentkey^="commentBox-"]');
         const editorRef = editor;
 
         // Restore button quickly
@@ -659,33 +608,15 @@ export function addRotateButton(editor) {
         }
     });
 
-    // Remove old button if it exists to prevent duplicates on soft-navigation React recycles
-    const oldRotateBtn = buttonContainer.querySelector('.connectz-rotate-btn');
-    if (oldRotateBtn) oldRotateBtn.remove();
-
-    // Insert button into the connectz action wrapper (shared between + and ↻)
-    let actionWrapper = buttonContainer.querySelector('.connectz-action-wrapper');
-    if (!actionWrapper) {
-        actionWrapper = document.createElement('div');
-        actionWrapper.className = 'connectz-action-wrapper';
-        actionWrapper.style.cssText = `
-            display: none;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 0;
-            margin-left: 8px;
-            ${isNativePlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
-        `;
-        buttonContainer.appendChild(actionWrapper);
-    }
-    actionWrapper.appendChild(rotateBtn);
+    // Insert button into the connectz action wrapper
+    editor._connectzActionWrapper.appendChild(rotateBtn);
 
     // Show/hide button based on content
     function updateButtonVisibility() {
         // Rich text editors commonly leave zero-width spaces (\u200B, \uFEFF) even when visually empty.
         const cleanText = (editor.textContent || editor.innerText || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
         const hasContent = cleanText !== '';
-        const wrapper = buttonContainer.querySelector('.connectz-action-wrapper');
+        const wrapper = editor._connectzActionWrapper;
 
         // Show if editor has content, and is not a post composer
         if (hasContent && !isPostComposer(editor)) {
@@ -694,7 +625,7 @@ export function addRotateButton(editor) {
         } else {
             rotateBtn.style.display = 'none';
             // Also softly hide the wrapper if the plusBtn isn't actively displayed. 
-            if (wrapper && !wrapper.querySelector('.connectz-plus-btn[style*="inline-flex"]')) {
+            if (wrapper && !wrapper.querySelector('.connectz-plus-btn')) { // Simplify check
                 wrapper.style.display = 'none';
             }
         }
@@ -744,14 +675,21 @@ export function processEditors() {
     const emojiButtons = document.querySelectorAll(
         'button[data-view-name="comment-emoji-picker"], ' +
         'button.comments-comment-box__emoji-picker-trigger, ' +
+        'button[aria-label="Show Emoji Picker"], ' +
+        'button[aria-label="Add an emoji"], ' +
         '.emoji-hoverable-trigger'
     );
     emojiButtons.forEach(button => {
         // Walk up to find the nearest contenteditable editor
-        const editor =
-            button.closest('[contenteditable="true"]') ||
-            button.closest('.comments-comment-box')?.querySelector('[contenteditable="true"]') ||
-            button.parentElement?.querySelector('[contenteditable="true"]');
+        let editor = null;
+        let current = button.parentElement;
+        for (let i = 0; i < 15; i++) {
+            if (!current) break;
+            if (current.tagName === 'ARTICLE' || current.classList.contains('feed-shared-update-v2')) break;
+            editor = current.querySelector('[contenteditable="true"][role="textbox"], .ql-editor');
+            if (editor) break;
+            current = current.parentElement;
+        }
         if (editor) editorsFromButton.push(editor);
     });
 
@@ -770,26 +708,53 @@ export function processEditors() {
     allEditors.forEach(editor => {
         if (!editor || !editor.isConnected) return; // skip detached nodes
 
-        // Check if we've already processed this editor
-        if (editor.dataset.connectzProcessed) return;
-
-        // Skip chat/messaging boxes
-        if (
-            editor.classList.contains('msg-form__contenteditable') ||
-            editor.closest('.msg-form__msg-content-container') ||
-            editor.closest('.msg-overlay-conversation-bubble') ||
-            editor.closest('.msg-form')
-        ) {
-            return;
-        }
-
-        // Mark as processed
-        editor.dataset.connectzProcessed = 'true';
-
-        // Add + button
+        // Add + button initialization
         addPlusButton(editor);
 
-        // Add rotate button
+        // Add rotate button initialization
         addRotateButton(editor);
+        
+        // Assert placement reliably on every tick
+        if (editor._connectzActionWrapper) {
+            let toolsContainer = null;
+            let current = editor.parentElement;
+            for (let i = 0; i < 15; i++) {
+                if (!current) break;
+                if (current.tagName === 'ARTICLE' || current.classList.contains('feed-shared-update-v2')) break;
+                const emojiBtn = current.querySelector('button[aria-label="Show Emoji Picker"], button[aria-label="Share photo"], button[aria-label="Add an emoji"], button.comments-comment-box__emoji-picker-trigger');
+                if (emojiBtn) {
+                    toolsContainer = emojiBtn.parentElement;
+                    break;
+                }
+                current = current.parentElement;
+            }
+
+            const editorWrapper =
+                editor.closest('[data-testid="ui-core-tiptap-text-editor-wrapper"]') ||
+                editor.closest('.comments-comment-box-comment__text-editor') ||
+                editor.closest('.comments-comment-box__editor') ||
+                editor.closest('.ql-container') ||
+                editor.closest('form') ||
+                editor.parentElement;
+
+            const buttonContainer = toolsContainer || editorWrapper;
+            const isNativePlacement = Boolean(toolsContainer);
+
+            if (buttonContainer && !buttonContainer.contains(editor._connectzActionWrapper)) {
+                if (editorWrapper && !isNativePlacement && getComputedStyle(editorWrapper).position === 'static') {
+                    editorWrapper.style.position = 'relative';
+                }
+                
+                editor._connectzActionWrapper.style.cssText = `
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 4px 0;
+                    margin-left: 8px;
+                    ${isNativePlacement ? '' : 'position: absolute; right: 8px; top: 8px; z-index: 1000;'}
+                `;
+                buttonContainer.appendChild(editor._connectzActionWrapper);
+            }
+        }
     });
 }
