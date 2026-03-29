@@ -103,7 +103,13 @@ export function extractPostContent(editor) {
             '.update-components-update-v2__commentary, ' +
             '.feed-shared-text, ' +
             '[data-testid="expandable-text-box"]'
-        ));
+        )).filter(node => {
+            // Exclude nodes that are inside a comment thread. 
+            // We only want to capture the main post content.
+            return !node.closest('[componentkey^="replaceableComment_"]') &&
+                   !node.closest('[componentkey*="urn:li:comment"]') &&
+                   !node.closest('.comments-comment-item');
+        });
         
         // Filter only those visible and geometrically above the editor
         const editorRect = editor.getBoundingClientRect();

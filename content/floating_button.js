@@ -9,63 +9,71 @@
  * @returns {string|null} The extracted post content or null.
  */
 function getVisiblePostContent() {
-    // Use a visual heuristic instead of strict structural matching.
-    const textNodes = Array.from(document.querySelectorAll(
+    // 1. Find all valid post text nodes
+    const validTextNodes = Array.from(document.querySelectorAll(
         '.update-components-text, ' +
         '.update-components-update-v2__commentary, ' +
         '.feed-shared-text, ' +
         '[data-testid="expandable-text-box"]'
-    ));
-
-    let closestNode = null;
-    let minDistance = Infinity;
-
-    const viewportCenter = window.innerHeight / 2;
-
-    textNodes.forEach(node => {
-        const rect = node.getBoundingClientRect();
-        
-        // Ensure the node is visible in the viewport
-        const isVisible = (
-            rect.top < window.innerHeight &&
-            rect.bottom > 0 &&
-            rect.height > 0
-        );
-
-        if (isVisible) {
-            // Distance from the vertical center of the screen to the center of the text block
-            const nodeCenter = rect.top + (rect.height / 2);
-            const distance = Math.abs(viewportCenter - nodeCenter);
-
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestNode = node;
-            }
-        }
+    )).filter(node => {
+        // Exclude nodes that are inside a comment thread. 
+        return !node.closest('[componentkey^="replaceableComment_"]') &&
+               !node.closest('[componentkey*="urn:li:comment"]') &&
+               !node.closest('.comments-comment-item');
     });
 
-    if (!closestNode) return null;
+    if (validTextNodes.length === 0) return null;
 
-    // span.break-words is stable in LinkedIn's current DOM (confirmed from real DOM)
+    // 2. Sort geometrically by their top position to determine the vertical "domain" of each post
+    validTextNodes.sort((a,b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+
+    let bestNode = null;
+    let maxVisibleHeight = 0;
+
+    for (let i = 0; i < validTextNodes.length; i++) {
+        const node = validTextNodes[i];
+        const nextNode = validTextNodes[i+1];
+        
+        const top = node.getBoundingClientRect().top;
+        // Inferred domain of the post spans from its text node down to the next post's text node
+        const bottom = nextNode ? Math.max(nextNode.getBoundingClientRect().top - 20, top + 10) : (top + 4000);
+        
+        const visibleTop = Math.max(top, 0);
+        const visibleBottom = Math.min(bottom, window.innerHeight);
+        const visibleHeight = visibleBottom - visibleTop;
+
+        if (visibleHeight > maxVisibleHeight && visibleHeight > 0) {
+            maxVisibleHeight = visibleHeight;
+            bestNode = node;
+        }
+    }
+
+    if (!bestNode) return null;
+
+    // 3. Extract text from the single best matching node
+    // Direct node extraction prevents the logic from traversing too far up the DOM and grouping 
+    // multiple posts together on heavily minified LinkedIn feed iterations.
     const textSpan =
-        closestNode.querySelector('span.break-words') ||
-        closestNode.querySelector('span[dir="ltr"]') ||
-        closestNode;
+        bestNode.querySelector('span.break-words') ||
+        bestNode.querySelector('span[dir="ltr"]') ||
+        bestNode;
 
     if (!textSpan) return null;
 
-    // Get text content - replace <br> tags with line breaks
-    let text = textSpan.innerHTML || textSpan.innerText || textSpan.textContent;
-
-    // Replace <br> and <br/> tags with line breaks
-    text = text.replace(/<br\s*\/?>/gi, '\n\n');
-
-    // Remove HTML tags but keep text
+    let fullText = textSpan.innerHTML || textSpan.innerText || textSpan.textContent;
+    
+    // Replace <br> tags with structural line breaks
+    fullText = fullText.replace(/<br\s*\/?>/gi, '\n\n');
+    
+    // Parse through DOM to strip remaining HTML tags safely
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = text;
-    text = tempDiv.textContent || tempDiv.innerText || text;
-    // Clean up the text
-    text = text
+    tempDiv.innerHTML = fullText;
+    fullText = tempDiv.textContent || tempDiv.innerText || fullText;
+
+    if (!fullText.trim()) return null;
+
+    // 4. Clean up formatting
+    let text = fullText
         .replace(/\r\n|\r/g, '\n')     // normalize newlines
         .replace(/[\u00A0\u200B]/g, '') // remove invisible spaces
         .replace(/\n{3,}/g, '\n\n')  // Replace 3+ line breaks with double

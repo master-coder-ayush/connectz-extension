@@ -708,6 +708,37 @@ export function processEditors() {
     allEditors.forEach(editor => {
         if (!editor || !editor.isConnected) return; // skip detached nodes
 
+        // Check if this editor is a reply-to-comment box.
+        // In the LinkedIn DOM, a reply box is typically a sibling (or child of a sibling) 
+        // that follows the comment it is replying to, rather than being nested inside it.
+        let isReplyToComment = false;
+        let current = editor;
+        while (current && current !== document.body) {
+            let sibling = current.previousElementSibling;
+            while (sibling) {
+                if (sibling.getAttribute && sibling.getAttribute('componentkey')?.startsWith('replaceableComment_')) {
+                    isReplyToComment = true;
+                    break;
+                }
+                sibling = sibling.previousElementSibling;
+            }
+            if (isReplyToComment) break;
+            current = current.parentElement;
+            
+            // Stop traversing if we hit the main post container
+            if (current && (current.tagName === 'ARTICLE' || (current.classList && current.classList.contains('feed-shared-update-v2')))) {
+                break;
+            }
+        }
+        
+        if (isReplyToComment) {
+            // Remove wrapper if it was attached previously (e.g. from a prior run before this logic)
+            if (editor._connectzActionWrapper && editor._connectzActionWrapper.parentNode) {
+                editor._connectzActionWrapper.parentNode.removeChild(editor._connectzActionWrapper);
+            }
+            return;
+        }
+
         // Add + button initialization
         addPlusButton(editor);
 
