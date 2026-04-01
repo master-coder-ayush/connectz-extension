@@ -731,7 +731,14 @@ export function processEditors() {
             }
         }
         
-        if (isReplyToComment) {
+        // Skip messaging UI
+        const isMessageEditor = window.location.pathname.startsWith('/messaging') || 
+                                editor.closest('.msg-form') || 
+                                editor.closest('.msg-overlay-conversation-bubble') || 
+                                editor.closest('.msg-form__msg-content-container') ||
+                                editor.closest('aside.msg-overlay-container');
+
+        if (isReplyToComment || isMessageEditor) {
             // Remove wrapper if it was attached previously (e.g. from a prior run before this logic)
             if (editor._connectzActionWrapper && editor._connectzActionWrapper.parentNode) {
                 editor._connectzActionWrapper.parentNode.removeChild(editor._connectzActionWrapper);

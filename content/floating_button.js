@@ -16,10 +16,13 @@ function getVisiblePostContent() {
         '.feed-shared-text, ' +
         '[data-testid="expandable-text-box"]'
     )).filter(node => {
-        // Exclude nodes that are inside a comment thread. 
+        // Exclude nodes that are inside a comment thread or messaging thread
         return !node.closest('[componentkey^="replaceableComment_"]') &&
                !node.closest('[componentkey*="urn:li:comment"]') &&
-               !node.closest('.comments-comment-item');
+               !node.closest('.comments-comment-item') &&
+               !node.closest('.msg-s-event-listitem') &&
+               !node.closest('.msg-s-message-group') &&
+               !node.closest('.msg-overlay-conversation-bubble');
     });
 
     if (validTextNodes.length === 0) return null;
@@ -708,10 +711,14 @@ function isLikelyFeedContext() {
     );
 }
 
+
 /**
  * Initialize the floating button.
  */
 export function initFloatingButton() {
+    // Only show one floating button per page, restrict to top frame 
+    if (window.top !== window.self) return;
+
     if (!isLikelyFeedContext()) return;
 
     // Check if button already exists
