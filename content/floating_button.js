@@ -3,6 +3,15 @@
  * Floating button module for Connect Z
  */
 
+const TONES = [
+  { icon: "content_cut", label: "Short + Punchy", desc: "Direct, no fluff. Gets to the point in the first line." },
+  { icon: "business_center", label: "Formal + Polished", desc: "Professional, well-structured. Sounds like a senior leader." },
+  { icon: "sentiment_satisfied", label: "Friendly + Casual", desc: "Warm, approachable, like talking to someone you trust." },
+  { icon: "search", label: "Insightful + Deep", desc: "Thoughtful, nuanced, adds layers to the conversation.", recommended: true },
+  { icon: "bolt", label: "Bold + Blunt", desc: "Confident, sometimes provocative, says what others won't." },
+  { icon: "local_fire_department", label: "Motivational", desc: "Energy-forward, optimistic, inspires action." }
+];
+
 /**
  * Get the visible post content from the viewport.
  * If multiple posts are visible, returns the one closest to the top.
@@ -130,6 +139,13 @@ function showContentSidebar(content) {
     // Create sidebar container
     sidebar = document.createElement('div');
     sidebar.id = 'connectz-content-sidebar';
+
+    // Add material symbols font link
+    const materialLink = document.createElement('link');
+    materialLink.rel = 'stylesheet';
+    materialLink.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap';
+    sidebar.appendChild(materialLink);
+
     sidebar.style.cssText = `
         position: fixed;
         top: 0;
@@ -339,7 +355,99 @@ function showContentSidebar(content) {
     `;
     body.appendChild(generatePostSection);
 
-    // --- Section 4: Sliding Tips ---
+    // --- Section 4: Tone Selector ---
+    const toneSection = document.createElement('div');
+    toneSection.innerHTML = `
+        <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #374151;">Select Your Tone</h4>
+        <div id="connectz-tone-options" style="
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        "></div>
+    `;
+    body.appendChild(toneSection);
+
+    // Load current tone and render options
+    const toneOptionsContainer = toneSection.querySelector('#connectz-tone-options');
+    let currentSelectedTone = null;
+
+    async function loadAndRenderTones() {
+        try {
+            const toneRes = await sendMessage('getUserTone');
+            currentSelectedTone = toneRes.success ? toneRes.tone : null;
+        } catch (e) {
+            console.warn("Failed to load tone:", e);
+            currentSelectedTone = null;
+        }
+        renderToneOptions();
+    }
+
+    function renderToneOptions() {
+        toneOptionsContainer.innerHTML = '';
+
+        TONES.forEach(tone => {
+            const toneCard = document.createElement('div');
+            const isSelected = currentSelectedTone === tone.label;
+            toneCard.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border-radius: 8px;
+                border: 1px solid ${isSelected ? '#FFD700' : '#e5e7eb'};
+                background: ${isSelected ? '#FFFBEB' : '#f9fafb'};
+                cursor: pointer;
+                transition: all 0.2s;
+                ${isSelected ? 'box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);' : ''}
+            `;
+            toneCard.innerHTML = `
+                <span class="material-symbols-outlined" style="
+                    font-size: 20px;
+                    color: ${isSelected ? '#1a1a2e' : '#6b7280'};
+                ">${tone.icon}</span>
+                <div style="flex: 1;">
+                    <div style="font-size: 13px; font-weight: 600; color: ${isSelected ? '#1a1a2e' : '#374151'};">${tone.label}</div>
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${tone.desc}</div>
+                </div>
+                ${tone.recommended ? '<span style="font-size: 10px; color: #6b7280; background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">Recommended</span>' : ''}
+                ${isSelected ? '<span class="material-symbols-outlined" style="font-size: 18px; color: #10b981;">check_circle</span>' : ''}
+            `;
+
+            toneCard.addEventListener('click', async () => {
+                const originalTone = currentSelectedTone;
+                currentSelectedTone = tone.label;
+                renderToneOptions();
+
+                try {
+                    await sendMessage('updateUserTone', { tone: tone.label });
+                } catch (e) {
+                    currentSelectedTone = originalTone;
+                    renderToneOptions();
+                    alert('Failed to update tone: ' + e.message);
+                }
+            });
+
+            toneCard.addEventListener('mouseenter', () => {
+                if (currentSelectedTone !== tone.label) {
+                    toneCard.style.borderColor = '#d1d5db';
+                    toneCard.style.background = '#f3f4f6';
+                }
+            });
+
+            toneCard.addEventListener('mouseleave', () => {
+                if (currentSelectedTone !== tone.label) {
+                    toneCard.style.borderColor = '#e5e7eb';
+                    toneCard.style.background = '#f9fafb';
+                }
+            });
+
+            toneOptionsContainer.appendChild(toneCard);
+        });
+    }
+
+    loadAndRenderTones();
+
+    // --- Section 6: Sliding Tips ---
     const tipsData = [
         'Comment in the first 60 minutes for maximum reach.',
         '8–15 word comments perform better than long ones.',
@@ -506,7 +614,7 @@ function showContentSidebar(content) {
         });
     };
 
-    // --- Section 5: Analytics & Progress ---
+    // --- Section 7: Analytics & Progress ---
     const analyticsSection = document.createElement('div');
     analyticsSection.innerHTML = `
         <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #374151;">Your Progress</h4>

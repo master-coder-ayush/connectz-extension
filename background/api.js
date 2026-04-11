@@ -296,6 +296,71 @@ export async function getBadgesStats() {
     }
 }
 
+/**
+ * Fetch current user's tone preference.
+ * @returns {Promise<string|null>} The user's selected tone.
+ */
+export async function getUserTone() {
+    try {
+        const baseUrl = await getBaseUrl();
+        const endpoint = `${baseUrl.replace(/\/$/, "")}/api/user_preference`;
+
+        const res = await fetch(endpoint, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        if (!res.ok) {
+            let errorData = null;
+            try { errorData = await res.json(); } catch (err) { }
+            if (errorData && errorData.error) throw new Error(errorData.error);
+            throw new Error(`HTTP request failed with status ${res.status}`);
+        }
+        const data = await res.json();
+        return data.tone || null;
+    } catch (e) {
+        console.warn("Failed to fetch user tone:", e);
+        throw e;
+    }
+}
+
+/**
+ * Update user's tone preference.
+ * @param {string} tone - The new tone value.
+ * @returns {Promise<string>} The updated tone.
+ */
+export async function updateUserTone(tone) {
+    if (!tone || !tone.trim()) {
+        throw new Error("Tone is required.");
+    }
+
+    try {
+        const baseUrl = await getBaseUrl();
+        const endpoint = `${baseUrl.replace(/\/$/, "")}/api/user_preference`;
+
+        const res = await fetch(endpoint, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ user_preference: { tone } }),
+        });
+
+        if (!res.ok) {
+            let errorData = null;
+            try { errorData = await res.json(); } catch (err) { }
+            if (errorData && errorData.error) throw new Error(errorData.error);
+            throw new Error(`HTTP request failed with status ${res.status}`);
+        }
+        const data = await res.json();
+        return data.tone;
+    } catch (e) {
+        console.warn("Failed to update user tone:", e);
+        throw e;
+    }
+}
+
 // Mock data for testing and fallback, CAN BE REMOVED in production
 function getMockData(type) {
     if (type === 'weekly') {

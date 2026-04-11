@@ -5,7 +5,9 @@ import {
     generatePostResponse,
     generateRephraseCommentResponse,
     getWeeklyStats,
-    getBadgesStats
+    getBadgesStats,
+    getUserTone,
+    updateUserTone
 } from './api.js';
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -68,6 +70,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         generateRephraseCommentResponse(request.postContent, request.existingComment)
             .then((rephraseComment) => {
                 sendResponse({ success: true, comment: rephraseComment });
+            })
+            .catch((error) => {
+                sendResponse({ success: false, error: error.message || "Unknown error" });
+            });
+        return true;
+    } else if (request.action === "getUserTone") {
+        getUserTone()
+            .then((tone) => {
+                sendResponse({ success: true, tone });
+            })
+            .catch((error) => {
+                sendResponse({ success: false, error: error.message || "Unknown error" });
+            });
+        return true;
+    } else if (request.action === "updateUserTone") {
+        updateUserTone(request.tone)
+            .then((tone) => {
+                sendResponse({ success: true, tone });
             })
             .catch((error) => {
                 sendResponse({ success: false, error: error.message || "Unknown error" });
