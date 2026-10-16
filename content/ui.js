@@ -295,6 +295,7 @@ export function addPlusButton(editor) {
             actions.push({
                 label: 'Copy',
                 icon: '📋',
+                dismissOnSuccess: true,
                 onClick: () => {
                     navigator.clipboard.writeText(generatedText).catch(() => {
                         // Fallback for clipboard API failure
@@ -316,6 +317,7 @@ export function addPlusButton(editor) {
                     label: 'Paste',
                     icon: '✏️',
                     primary: true,
+                    dismissOnSuccess: true,
                     onClick: () => {
                         // Scroll to the post first so user sees the editor
                         if (postContainer && postContainer.isConnected) {
@@ -551,6 +553,7 @@ export function addRotateButton(editor) {
             actions.push({
                 label: 'Copy',
                 icon: '📋',
+                dismissOnSuccess: true,
                 onClick: () => {
                     navigator.clipboard.writeText(rephrasedComment).catch(() => {
                         const textarea = document.createElement('textarea');
@@ -570,6 +573,7 @@ export function addRotateButton(editor) {
                     label: 'Paste',
                     icon: '✏️',
                     primary: true,
+                    dismissOnSuccess: true,
                     onClick: () => {
                         if (postContainer && postContainer.isConnected) {
                             postContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });

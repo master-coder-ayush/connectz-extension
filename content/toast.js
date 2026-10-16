@@ -288,7 +288,7 @@ function dismissToast(toastEl) {
  * @param {string} options.title - Toast title text
  * @param {string} [options.message] - Toast body message (optional)
  * @param {number} [options.duration=15000] - Auto-dismiss duration in ms (0 = no auto-dismiss)
- * @param {Array<{label: string, icon?: string, onClick: Function, primary?: boolean}>} [options.actions] - Action buttons
+ * @param {Array<{label: string, icon?: string, onClick: Function, primary?: boolean, dismissOnSuccess?: boolean}>} [options.actions] - Action buttons
  * @returns {{ dismiss: Function, element: HTMLElement }} Controller object
  */
 export function showToast({ type = 'info', title, message = '', duration = 15000, actions = [] }) {
@@ -364,11 +364,20 @@ export function showToast({ type = 'info', title, message = '', duration = 15000
                 e.stopPropagation();
                 action.onClick(e);
 
-                // Visual feedback
+                // Visual feedback and auto-dismiss
                 const originalText = btn.textContent;
                 if (action.label === 'Copy') {
                     btn.textContent = '✓ Copied!';
-                    setTimeout(() => { btn.textContent = originalText; }, 1500);
+                    if (action.dismissOnSuccess) {
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            dismissToast(toast);
+                        }, 1500);
+                    } else {
+                        setTimeout(() => { btn.textContent = originalText; }, 1500);
+                    }
+                } else if (action.dismissOnSuccess) {
+                    dismissToast(toast);
                 }
             });
         }

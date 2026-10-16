@@ -265,17 +265,15 @@ export function insertAtCursor(text, editor) {
 
 /**
  * Clear the editor content.
+ * This function always clears without adding a placeholder <br> because it is only called
+ * right before inserting new content. This avoids leaving an empty trailing line when
+ * pasting generated text into the editor.
  * @param {HTMLElement} editor - The editor element.
  */
 export function clearEditorContent(editor) {
     if (!editor) return;
 
     editor.innerHTML = '';
-
-    const paragraph = document.createElement('p');
-    const br = document.createElement('br');
-    paragraph.appendChild(br);
-    editor.appendChild(paragraph);
 
     editor.dispatchEvent(new Event('input', { bubbles: true }));
     editor.dispatchEvent(new Event('change', { bubbles: true }));
